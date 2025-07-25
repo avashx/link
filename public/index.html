@@ -3,48 +3,316 @@
 <head>
   <title>LinkedIn Profile View Tracker</title>
   <style>
-    body { font-family: sans-serif; background: #f6f6f6; margin: 0; padding: 2em; }
-    .btn { background: #333; color: #fff; padding: 1em 2em; border: none; border-radius: 5px; cursor: pointer; }
-    .log { font-family: monospace; margin-top: 2em; max-height: 300px; overflow-y: auto; }
-    .viewer { background: #fff; margin: 1em 0; padding: 1em; border-radius: 5px; }
-    .screenshot-img { max-width:220px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:transform 0.2s; }
-    .screenshot-img:hover { transform:scale(1.05); }
-    #screenshot-popup {
-      display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999;
-      align-items:center; justify-content:center;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      min-height: 100vh; 
+      color: #333; 
     }
-    #screenshot-popup img { max-width:90vw; max-height:90vh; border-radius:16px; box-shadow:0 4px 32px rgba(0,0,0,0.2); }
+    
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    
+    .header {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .total-viewers {
+      font-size: 3rem;
+      font-weight: 800;
+      color: #2c3e50;
+      margin: 1rem 0;
+    }
+    
+    .nav-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 0.8rem 2rem;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn:active {
+      transform: translateY(-1px);
+    }
+    
+    .btn.secondary {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+    }
+    
+    .btn.secondary:hover {
+      box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+    }
+    
+    .card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    
+    .card h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .calendar-header {
+      text-align: center;
+      font-weight: 600;
+      padding: 0.5rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      font-size: 0.9rem;
+    }
+    
+    .calendar-day:hover {
+      background: #e9ecef;
+      transform: scale(1.05);
+    }
+    
+    .calendar-day.has-data {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+    
+    .calendar-day.today {
+      border: 2px solid #f093fb;
+      font-weight: 700;
+    }
+    
+    .calendar-day .day-number {
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+    
+    .calendar-day .viewer-count {
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+    
+    .log { 
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 12px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    
+    .log-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      border-left: 3px solid transparent;
+    }
+    
+    .log-entry.info {
+      border-left-color: #0ea5e9;
+      background: rgba(14, 165, 233, 0.1);
+    }
+    
+    .log-entry.error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .log-entry.success {
+      border-left-color: #22c55e;
+      background: rgba(34, 197, 94, 0.1);
+    }
+    
+    .viewer { 
+      background: #fff; 
+      margin: 1rem 0; 
+      padding: 1.5rem; 
+      border-radius: 12px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      border-left: 4px solid #667eea;
+    }
+    
+    .screenshot-img { 
+      max-width:220px; 
+      border-radius:12px; 
+      box-shadow:0 4px 20px rgba(0,0,0,0.1); 
+      cursor:pointer; 
+      transition:transform 0.3s ease; 
+    }
+    
+    .screenshot-img:hover { 
+      transform: scale(1.05) translateY(-2px); 
+    }
+    
+    #screenshot-popup {
+      display:none; 
+      position:fixed; 
+      top:0; 
+      left:0; 
+      width:100vw; 
+      height:100vh; 
+      background:rgba(0,0,0,0.9); 
+      z-index:9999;
+      align-items:center; 
+      justify-content:center;
+      backdrop-filter: blur(5px);
+    }
+    
+    #screenshot-popup img { 
+      max-width:90vw; 
+      max-height:90vh; 
+      border-radius:16px; 
+      box-shadow:0 8px 40px rgba(0,0,0,0.3); 
+    }
+    
     #screenshot-popup:active { display:none; }
+    
+    .status-bar {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .nav-buttons { flex-direction: column; align-items: center; }
+      .calendar-grid { grid-template-columns: repeat(7, 1fr); font-size: 0.8rem; }
+    }
   </style>
 </head>
 <body>
-  <nav style="background: #fff; color: #222; padding: 1.5em 2em; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
-    <div style="font-size: 2em; font-weight: bold; letter-spacing: 1px;">Profile Analytics</div>
-    <div id="status-bar" style="font-size:1.2em;color:#fff;background:#4f8cff;padding:0.5em 1.5em;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-right:2em;">Idle</div>
-    <button class="btn" id="launchBtn" onclick="launchScrape()" style="background:#222;color:#fff;">Launch!!</button>
-    <button class="btn" onclick="stopScrape()" style="background:#ff4f4f;color:#fff;margin-left:1em;">Stop</button>
-    <button class="btn" onclick="handleTestFirestore()" style="background:#4caf50;color:#fff;margin-left:1em;">Test DB</button>
-  </nav>
-  <div id="screenshot-popup" onclick="closeScreenshotPopup()"><img id="popup-img" src="" alt="Screenshot"></div>
-  <main style="max-width: 1200px; margin: 3em auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 32px rgba(0,0,0,0.07); padding: 3em;">
-    <section style="margin-bottom: 3em; display: flex; gap: 4em; justify-content: space-between;">
-      <div style="flex:1;">
-        <h2 style="font-size: 2em; font-weight: 700; margin-bottom: 1em; color:#222;">Total Viewers</h2>
-        <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
-          <input type="date" id="dateSelector" style="padding: 0.5em; border: 1px solid #ddd; border-radius: 5px; font-size: 1em;" onchange="fetchTotalByDate()">
-          <button onclick="fetchLatestTotal()" style="padding: 0.5em 1em; background: #4f8cff; color: white; border: none; border-radius: 5px; cursor: pointer;">Latest</button>
+  <div class="container">
+    <div class="header">
+      <h1>LinkedIn Profile Tracker</h1>
+      <div class="subtitle" id="last-updated">Loading...</div>
+      <div class="total-viewers" id="total-viewers">0</div>
+      <div class="status-bar" id="status">🔄 Ready to track</div>
+      
+      <div class="nav-buttons">
+        <button class="btn" onclick="launchScrape()">🚀 Start Tracking</button>
+        <button class="btn secondary" onclick="stopScrape()">⏹ Stop Tracking</button>
+        <button class="btn" onclick="fetchScreenshots()">📸 Refresh Screenshots</button>
+        <button class="btn secondary" onclick="exportCSV()">📊 Export Data</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>📅 Current Month Overview</h2>
+        <div id="calendar-container">
+          <div class="calendar-grid" id="calendar-grid">
+            <!-- Calendar will be generated here -->
+          </div>
         </div>
-        <div style="font-size: 3em; font-weight: bold; color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
-        <div id="last-updated" style="font-size:1em;color:#888;margin-top:0.5em;"></div>
-        <div id="selected-date-info" style="font-size:1em;color:#666;margin-top:0.5em;"></div>
       </div>
-      <div style="flex:2;">
-        <div id="dailyTotalsTable" style="margin-top:1em;"></div>
+
+      <div class="card">
+        <h2>📊 View Increases</h2>
+        <div id="view-increases">Loading view increases...</div>
       </div>
-    </section>
-    <section style="margin-bottom: 3em;">
-      <h3 style="font-size: 1.3em; font-weight: 600; margin-bottom: 1em; color:#222;">📈 View Increase Updates</h3>
-      <div style="background:#fafafa; border-radius:12px; padding:2em;">
+    </div>
+
+    <div class="card">
+      <h2>🖥 Live System Logs</h2>
+      <div class="log" id="logs">
+        <div class="log-entry info">System initialized. Ready to track LinkedIn profile views...</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📸 Recent Screenshots</h2>
+      <div id="screenshot-table">Loading screenshots...</div>
+    </div>
+
+    <div class="card">
+      <h2>👥 Recent Viewers</h2>
+      <div id="viewer-table">Click "Start Tracking" to see recent viewers...</div>
+    </div>
+  </div>
+
+  <div id="screenshot-popup" onclick="closeScreenshotPopup()">
+    <img id="popup-img" src="" alt="Screenshot">
+  </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1em;">
           <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
             <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 1 Hour</div>
@@ -192,55 +460,147 @@ async function fetchScreenshots() {
   }
 }
 
-// Fetch total viewers from latest daily total or by specific date
-async function fetchTotalViewers(selectedDate = null) {
+// Initialize on page load
+window.onload = async () => {
+  await fetchTotalViewers();
+  await generateCalendar();
+  await fetchViewIncreases();
+  await fetchScreenshots();
+  startLogRefresh();
+};
+
+// Fetch latest total viewers and last updated time
+async function fetchTotalViewers() {
   try {
-    let q;
-    if (selectedDate) {
-      // Fetch for specific date
-      q = query(collection(db, "daily_totals"), 
-                where("date", "==", selectedDate), 
-                orderBy("timestamp", "desc"), 
-                limit(1));
-    } else {
-      // Fetch latest
-      q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
-    }
-    
+    const q = query(collection(db, "daily_totals"), orderBy("timestamp", "desc"), limit(1));
     const snapshot = await getDocs(q);
+    
     let total = 0;
-    let dateInfo = '';
+    let lastDate = '';
     
     if (!snapshot.empty) {
-      snapshot.forEach(doc => { 
-        const data = doc.data();
-        total = data.total;
-        dateInfo = data.date;
-      });
-      document.getElementById('last-updated').textContent = `Last updated: ${dateInfo}`;
-    } else if (selectedDate) {
-      document.getElementById('last-updated').textContent = `No data found for ${selectedDate}`;
+      const data = snapshot.docs[0].data();
+      total = data.total || 0;
+      
+      // Format the timestamp to show last updated
+      if (data.timestamp) {
+        const date = data.timestamp.toDate();
+        const options = { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric', 
+          hour: 'numeric', 
+          minute: 'numeric', 
+          second: 'numeric',
+          hour12: true 
+        };
+        lastDate = date.toLocaleDateString('en-US', options);
+      } else {
+        lastDate = data.date || 'Unknown';
+      }
     }
     
-    document.getElementById('total').textContent = total;
+    document.getElementById('total-viewers').textContent = total.toLocaleString();
+    document.getElementById('last-updated').textContent = lastDate ? `Last updated: ${lastDate}` : 'No data available';
     
-    if (selectedDate) {
-      document.getElementById('selected-date-info').textContent = `Showing data for: ${selectedDate}`;
-    } else {
-      document.getElementById('selected-date-info').textContent = 'Showing latest data';
-    }
-    
-    // Also try to get from viewers collection if no daily totals
-    if (total === 0 && !selectedDate) {
-      const viewersQ = query(collection(db, "viewers"));
-      const viewersSnapshot = await getDocs(viewersQ);
-      document.getElementById('total').textContent = viewersSnapshot.size;
-      document.getElementById('last-updated').textContent = 'Calculated from total viewer records';
-    }
   } catch (error) {
     console.error('Error fetching total viewers:', error);
-    document.getElementById('total').textContent = '0';
+    document.getElementById('total-viewers').textContent = '0';
     document.getElementById('last-updated').textContent = 'Error loading data';
+  }
+}
+
+// Generate calendar grid for current month
+async function generateCalendar() {
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    
+    // Fetch daily totals for this month
+    const monthStart = `1/${month + 1}/${year}`;
+    const monthEnd = `${daysInMonth}/${month + 1}/${year}`;
+    
+    const q = query(collection(db, "daily_totals"));
+    const snapshot = await getDocs(q);
+    
+    const dailyData = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.date && data.total) {
+        dailyData[data.date] = data.total;
+      }
+    });
+    
+    // Generate calendar HTML
+    const calendarGrid = document.getElementById('calendar-grid');
+    let html = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      html += `<div class="calendar-header">${day}</div>`;
+    });
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startDayOfWeek; i++) {
+      html += '<div class="calendar-day"></div>';
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${day}/${month + 1}/${year}`;
+      const isToday = (day === now.getDate() && month === now.getMonth() && year === now.getFullYear());
+      const hasData = dailyData[dateKey];
+      
+      let classes = 'calendar-day';
+      if (isToday) classes += ' today';
+      if (hasData) classes += ' has-data';
+      
+      html += `
+        <div class="${classes}" onclick="selectCalendarDate('${dateKey}')">
+          <div class="day-number">${day}</div>
+          ${hasData ? `<div class="viewer-count">${hasData}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    calendarGrid.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error generating calendar:', error);
+    document.getElementById('calendar-grid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #f44;">Error loading calendar</div>';
+  }
+}
+
+// Select a date from calendar
+function selectCalendarDate(dateKey) {
+  // Update total viewers display for selected date
+  fetchTotalViewersByDate(dateKey);
+}
+
+// Fetch total viewers for specific date
+async function fetchTotalViewersByDate(dateKey) {
+  try {
+    const q = query(collection(db, "daily_totals"), where("date", "==", dateKey), limit(1));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      document.getElementById('total-viewers').textContent = data.total?.toLocaleString() || '0';
+      document.getElementById('last-updated').textContent = `Selected date: ${dateKey} (${data.total || 0} viewers)`;
+    } else {
+      document.getElementById('total-viewers').textContent = '0';
+      document.getElementById('last-updated').textContent = `No data for ${dateKey}`;
+    }
+  } catch (error) {
+    console.error('Error fetching date data:', error);
   }
 }
 
@@ -323,38 +683,51 @@ async function fetchLatestTotal() {
   await fetchTotalViewers();
 }
 
-// Fetch and display live logs (updated version)
+// Fetch and display enhanced live logs
 async function fetchLiveLogs() {
   try {
-    const backendURL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
-    const response = await fetch(`${backendURL}/api/logs`);
+    const response = await fetch(`${BACKEND_URL}/api/logs`);
     const data = await response.json();
     const logsDiv = document.getElementById('logs');
+    
     if (data.logs && data.logs.length > 0) {
-      // Convert array to HTML with proper line breaks and styling
-      const logLines = data.logs.slice(0, 20).map(log => {
-        // Add basic styling based on log type
-        if (log.includes('[ERROR]')) {
-          return `<div style="color: #f44; margin: 2px 0;">${log}</div>`;
-        } else if (log.includes('[INFO]')) {
-          return `<div style="color: #333; margin: 2px 0;">${log}</div>`;
-        } else if (log.includes('[DEBUG]')) {
-          return `<div style="color: #666; margin: 2px 0;">${log}</div>`;
+      // Process logs with enhanced styling
+      const logLines = data.logs.slice(-50).map(log => {
+        let logClass = 'log-entry';
+        let logContent = log;
+        
+        // Determine log type and apply styling
+        if (log.includes('ERROR') || log.includes('❌')) {
+          logClass += ' error';
+        } else if (log.includes('INFO') || log.includes('✅') || log.includes('📸') || log.includes('📊')) {
+          logClass += ' success';
         } else {
-          return `<div style="margin: 2px 0;">${log}</div>`;
+          logClass += ' info';
         }
+        
+        // Format timestamp if present
+        logContent = logContent.replace(/\[(.*?)\]/, '<span style="color: #888; font-size: 0.8em;">[$1]</span>');
+        
+        return `<div class="${logClass}">${logContent}</div>`;
       }).join('');
+      
       logsDiv.innerHTML = logLines;
       
-      // Auto-scroll to bottom
+      // Auto-scroll to bottom for latest logs
       logsDiv.scrollTop = logsDiv.scrollHeight;
     } else {
-      logsDiv.innerHTML = '<div style="color: #888; text-align: center; padding: 1em;">No logs yet. Click Launch!! to start scraping.</div>';
+      logsDiv.innerHTML = '<div class="log-entry info">System ready. Click "Start Tracking" to begin monitoring LinkedIn profile views.</div>';
     }
   } catch (error) {
     console.error('Error fetching logs:', error);
-    document.getElementById('logs').innerHTML = '<div style="color: #f44; text-align: center; padding: 1em;">Error loading logs.</div>';
+    document.getElementById('logs').innerHTML = '<div class="log-entry error">❌ Error loading system logs. Check connection.</div>';
   }
+}
+
+// Start live log refresh
+function startLogRefresh() {
+  fetchLiveLogs(); // Initial fetch
+  setInterval(fetchLiveLogs, 3000); // Refresh every 3 seconds
 }
 
 // Insert mock viewer data for testing Firestore connection
@@ -530,51 +903,85 @@ function setStatusBar(status) {
 }
 
 async function launchScrape() {
-  setStatusBar('Scraping...');
-  document.getElementById('launchBtn').disabled = true;
-  document.getElementById('launchBtn').textContent = 'Scraping...';
-  
-  // Start log refresh to show live progress
-  startLogRefresh();
+  document.getElementById('status').textContent = '🚀 Starting scraper...';
+  document.getElementById('status').className = 'status-bar';
   
   try {
-    const response = await fetch((location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com') + '/api/scrape', { method: 'POST' });
+    const response = await fetch(`${BACKEND_URL}/api/scrape`, { method: 'POST' });
     const result = await response.json();
     
-    setStatusBar('Scrape Complete');
-    document.getElementById('launchBtn').disabled = false;
-    document.getElementById('launchBtn').textContent = 'Launch!!';
+    document.getElementById('status').textContent = '✅ Scraping completed';
     
     // Refresh all data after scraping
-    if (window.fetchTotalViewers) await window.fetchTotalViewers();
-    if (window.fetchDailyTotals) await window.fetchDailyTotals();
-    if (window.fetchScreenshots) await window.fetchScreenshots();
-    if (window.fetchViewerDetails) await window.fetchViewerDetails();
-    if (window.fetchLiveLogs) await window.fetchLiveLogs();
-    if (window.fetchViewIncreases) await window.fetchViewIncreases();
+    await fetchTotalViewers();
+    await generateCalendar();
+    await fetchViewIncreases();
+    await fetchScreenshots();
     
-    // Reset status to idle after 3 seconds
+    // Reset status after 3 seconds
     setTimeout(() => {
-      setStatusBar('Idle');
+      document.getElementById('status').textContent = '🔄 Ready to track';
     }, 3000);
     
   } catch (error) {
-    console.error('Scrape failed:', error);
-    setStatusBar('Scrape Failed');
-    document.getElementById('launchBtn').disabled = false;
-    document.getElementById('launchBtn').textContent = 'Launch!!';
+    console.error('Scraping error:', error);
+    document.getElementById('status').textContent = '❌ Scraping failed';
+    document.getElementById('status').style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
   }
 }
 
 async function stopScrape() {
-  setStatusBar('Stopped');
+  document.getElementById('status').textContent = '⏹ Stopping...';
+  
   try {
-    await fetch((location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com') + '/api/stop-scrape', { method: 'POST' });
+    const response = await fetch(`${BACKEND_URL}/api/stop`, { method: 'POST' });
+    document.getElementById('status').textContent = '⏹ Stopped';
+    document.getElementById('status').style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
   } catch (error) {
-    console.error('Stop failed:', error);
+    console.error('Stop error:', error);
+    document.getElementById('status').textContent = '❌ Stop failed';
+  }
+}
+// Export CSV function
+async function exportCSV() {
+  try {
+    document.getElementById('status').textContent = '📊 Exporting data...';
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      document.getElementById('status').textContent = '✅ CSV exported successfully';
+      setTimeout(() => {
+        document.getElementById('status').textContent = '🔄 Ready to track';
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    document.getElementById('status').textContent = '❌ Export failed';
   }
 }
 
+// Close screenshot popup
+function closeScreenshotPopup() {
+  document.getElementById('screenshot-popup').style.display = 'none';
+}
+
+// Open screenshot popup
+function openScreenshotPopup(imageSrc) {
+  document.getElementById('popup-img').src = imageSrc;
+  document.getElementById('screenshot-popup').style.display = 'flex';
+}
+
+// Test Firestore connection
 function handleTestFirestore() {
   if (window.moduleTestFirestore && typeof window.moduleTestFirestore === 'function') {
     window.moduleTestFirestore();
