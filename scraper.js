@@ -1,21 +1,10 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
-const mongoose = require('mongoose');
+const db = require('./firebase-admin');
 require('dotenv').config();
 
 puppeteer.use(StealthPlugin());
-
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-
-const viewerSchema = new mongoose.Schema({
-  name: String,
-  headline: String,
-  company: String,
-  timestamp: String,
-  isFree: Boolean
-});
-const Viewer = mongoose.model('Viewer', viewerSchema);
 
 async function scrapeProfileViews(log) {
   const path = require('path');
@@ -112,11 +101,11 @@ async function scrapeProfileViews(log) {
 
     // Log and save the result
     log('INFO', `Total Viewers: ${result.totalViewers}, Free Viewers: ${result.freeViewers.length}`);
-    // Save to MongoDB instead of file
-    await Viewer.deleteMany({}); // Clear old viewers
-    await Viewer.insertMany(result.allViewers.map(v => ({ ...v, isFree: false })));
-    await Viewer.insertMany(result.freeViewers.map(v => ({ ...v, isFree: true })));
-    log('INFO', 'Viewer data saved to MongoDB');
+    // Save to Firestore instead of file
+    for (const viewer of result.allViewers) {
+      await db.collection('viewers').add(viewer);
+    }
+    log('INFO', 'Viewer data uploaded to Firestore');
 
     // Screenshot the profile views section
     await page.screenshot({ path: `${SCREENSHOT_DIR}/profile_views.png`, fullPage: true });

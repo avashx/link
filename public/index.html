@@ -64,6 +64,42 @@
     </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+      authDomain: "linkrtdb.firebaseapp.com",
+      projectId: "linkrtdb",
+      storageBucket: "linkrtdb.firebasestorage.app",
+      messagingSenderId: "250414480081",
+      appId: "1:250414480081:web:79de7428b63923578063f0",
+      measurementId: "G-EZ2XERVTK7"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    // Save a viewer
+    async function saveViewer(viewer) {
+      await addDoc(collection(db, "viewers"), viewer);
+    }
+    // Fetch all viewers
+    async function fetchViewersFromFirebase() {
+      const querySnapshot = await getDocs(collection(db, "viewers"));
+      const viewers = [];
+      querySnapshot.forEach((doc) => {
+        viewers.push(doc.data());
+      });
+      // Use viewers array to update your dashboard
+      // Example: update table
+      document.getElementById('viewerTable').innerHTML = viewers.map(v =>
+        `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
+      ).join('');
+      document.getElementById('total').textContent = viewers.length;
+    }
+    // Call this on page load
+    fetchViewersFromFirebase();
+    // You can also call saveViewer({...}) to add a viewer
+  </script>
   <script>
     async function fetchViewers() {
       const res = await fetch('/api/viewers');
