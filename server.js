@@ -92,6 +92,13 @@ app.post('/api/scrape', async (req, res) => {
   res.json({ status: 'done' });
 });
 
+app.post('/api/stop-scrape', (req, res) => {
+  log('INFO', 'Stop scrape requested');
+  // Note: The current scraper doesn't support stopping mid-process
+  // This endpoint exists for frontend compatibility
+  res.json({ status: 'stop requested' });
+});
+
 // Schedule every 3 minutes
 cron.schedule('*/3 * * * *', () => {
   log('DEBUG', 'Starting scrapeProfileViews (cron)');

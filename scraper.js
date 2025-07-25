@@ -1,8 +1,21 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
-const db = require('./firebase-admin');
+const path = require('path');
+const admin = require('firebase-admin');
 require('dotenv').config();
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  const serviceAccount = require('./serviceAccountKey.json');
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: 'linkrtdb.appspot.com'
+  });
+}
+
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
 
 puppeteer.use(StealthPlugin());
 
@@ -101,15 +114,60 @@ async function scrapeProfileViews(log) {
 
     // Log and save the result
     log('INFO', `Total Viewers: ${result.totalViewers}, Free Viewers: ${result.freeViewers.length}`);
-    // Save to Firestore instead of file
+    
+    // Save viewer data to Firestore with IST timestamp
     for (const viewer of result.allViewers) {
-      await db.collection('viewers').add(viewer);
+      if (viewer.name && viewer.name.trim()) { // Only save if name exists
+        const viewerWithTimestamp = {
+          ...viewer,
+          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
+          scraped_at: admin.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection('viewers').add(viewerWithTimestamp);
+      }
     }
     log('INFO', 'Viewer data uploaded to Firestore');
 
-    // Screenshot the profile views section
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/profile_views.png`, fullPage: true });
-    log('INFO', 'Screenshot of profile views taken.');
+    // Save daily total to Firestore
+    const today = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+    await db.collection('daily_totals').add({
+      date: today,
+      total: result.totalViewers,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    log('INFO', 'Daily total saved to Firestore');
+
+    // Take screenshot and upload to Firebase Storage with IST timestamp
+    const now = new Date();
+    const istTime = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const [datePart, timePart] = istTime.split(', ');
+    const [day, month, year] = datePart.split('/');
+    const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+    const formattedTime = timePart.replace(/:/g, '-').replace(' ', '_');
+    const screenshotName = `profile-views-${formattedDate}_${formattedTime}.png`;
+    
+    const screenshotPath = path.join(__dirname, screenshotName);
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    log('INFO', `Screenshot taken: ${screenshotName}`);
+
+    // Upload screenshot to Firebase Storage
+    try {
+      await bucket.upload(screenshotPath, {
+        destination: `screenshots/${screenshotName}`,
+        metadata: {
+          metadata: {
+            timestamp: istTime,
+            totalViewers: result.totalViewers.toString()
+          }
+        }
+      });
+      log('INFO', 'Screenshot uploaded to Firebase Storage');
+      
+      // Clean up local screenshot file
+      fs.unlinkSync(screenshotPath);
+    } catch (uploadError) {
+      log('ERROR', `Failed to upload screenshot: ${uploadError.message}`);
+    }
 
     await browser.close();
     return result;

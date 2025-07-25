@@ -23,13 +23,14 @@
     <div id="status-bar" style="font-size:1.2em;color:#fff;background:#4f8cff;padding:0.5em 1.5em;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-right:2em;">Idle</div>
     <button class="btn" id="launchBtn" onclick="launchScrape()" style="background:#222;color:#fff;">Launch!!</button>
     <button class="btn" onclick="stopScrape()" style="background:#ff4f4f;color:#fff;margin-left:1em;">Stop</button>
+    <button class="btn" onclick="testFirestore()" style="background:#4caf50;color:#fff;margin-left:1em;">Test DB</button>
   </nav>
   <div id="screenshot-popup" onclick="closeScreenshotPopup()"><img id="popup-img" src="" alt="Screenshot"></div>
   <main style="max-width: 1200px; margin: 3em auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 32px rgba(0,0,0,0.07); padding: 3em;">
     <section style="margin-bottom: 3em; display: flex; gap: 4em; justify-content: space-between;">
       <div style="flex:1;">
         <h2 style="font-size: 2em; font-weight: 700; margin-bottom: 1em; color:#222;">Total Viewers</h2>
-        <div style="font-size: 3em; font-weight: bold, color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
+        <div style="font-size: 3em; font-weight: bold; color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
         <div id="last-updated" style="font-size:1em;color:#888;margin-top:0.5em;"></div>
       </div>
       <div style="flex:2;">
@@ -66,6 +67,9 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 // Backend API base URL: use localhost for dev, Render for prod
 const BACKEND_URL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
@@ -85,82 +89,184 @@ const storage = getStorage(app);
 
 // Fetch daily totals and show table
 async function fetchDailyTotals() {
-  const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(30));
-  const snapshot = await getDocs(q);
-  let html = '<table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;">';
-  html += '<tr><th>Date</th><th>Total Viewers</th></tr>';
-  snapshot.forEach(doc => {
-    const d = doc.data();
-    html += `<tr><td>${d.date}</td><td>${d.total}</td></tr>`;
-  });
-  html += '</table>';
-  document.getElementById('dailyTotalsTable').innerHTML = html;
+  try {
+    const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(30));
+    const snapshot = await getDocs(q);
+    let html = '<h4 style="margin-bottom:1em;color:#222;">Daily Totals</h4><table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;border-radius:8px;overflow:hidden;">';
+    html += '<thead style="background:#f8f8f8;"><tr><th style="padding:0.8em;text-align:left;">Date</th><th style="padding:0.8em;text-align:left;">Total Viewers</th></tr></thead><tbody>';
+    if (snapshot.empty) {
+      html += '<tr><td colspan="2" style="padding:1em;text-align:center;color:#888;">No daily totals yet. Use Test DB to add sample data.</td></tr>';
+    } else {
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<tr><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.date}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.total}</td></tr>`;
+      });
+    }
+    html += '</tbody></table>';
+    document.getElementById('dailyTotalsTable').innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching daily totals:', error);
+    document.getElementById('dailyTotalsTable').innerHTML = '<p>Error loading daily totals.</p>';
+  }
 }
 
 // Fetch screenshots from Firebase Storage and show
 async function fetchScreenshots() {
-  const listRef = ref(storage, 'screenshots/');
-  const res = await listAll(listRef);
-  let html = '<div style="display:flex;flex-wrap:wrap;gap:1em;">';
-  for (const itemRef of res.items) {
-    const url = await getDownloadURL(itemRef);
-    // Parse timestamp from filename
-    const ts = itemRef.name.replace('profile-views-', '').replace('.png', '').replace(/-/g, '/');
-    html += `<div><img src="${url}" style="max-width:220px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:0.5em;"><div style="text-align:center;color:#222;font-size:0.9em;">${ts} IST</div></div>`;
+  try {
+    const listRef = ref(storage, 'screenshots/');
+    const res = await listAll(listRef);
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:1em;">';
+    for (const itemRef of res.items) {
+      const url = await getDownloadURL(itemRef);
+      // Parse timestamp from filename (expecting format: YYYY-MM-DD_HH-MM-SS)
+      const filename = itemRef.name.replace('profile-views-', '').replace('.png', '');
+      const [datePart, timePart] = filename.split('_');
+      const displayTime = datePart && timePart ? `${datePart} ${timePart.replace(/-/g, ':')} IST` : filename;
+      html += `<div><img src="${url}" class="screenshot-img" onclick="openScreenshotPopup('${url}')" style="max-width:220px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:0.5em;cursor:pointer;"><div style="text-align:center;color:#222;font-size:0.9em;">${displayTime}</div></div>`;
+    }
+    html += '</div>';
+    document.getElementById('screenshot-table').innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching screenshots:', error);
+    document.getElementById('screenshot-table').innerHTML = '<p>No screenshots available or error loading.</p>';
   }
-  html += '</div>';
-  document.getElementById('screenshot-table').innerHTML = html;
 }
 
 // Fetch total viewers from latest daily total
 async function fetchTotalViewers() {
-  // For testing, set to 99 if no data
-  const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
-  const snapshot = await getDocs(q);
-  let total = 99;
-  snapshot.forEach(doc => { total = doc.data().total; });
-  document.getElementById('total').textContent = total;
+  try {
+    const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
+    const snapshot = await getDocs(q);
+    let total = 0;
+    snapshot.forEach(doc => { total = doc.data().total; });
+    document.getElementById('total').textContent = total;
+    
+    // Also try to get from viewers collection if no daily totals
+    if (total === 0) {
+      const viewersQ = query(collection(db, "viewers"));
+      const viewersSnapshot = await getDocs(viewersQ);
+      document.getElementById('total').textContent = viewersSnapshot.size;
+    }
+  } catch (error) {
+    console.error('Error fetching total viewers:', error);
+    document.getElementById('total').textContent = '0';
+  }
 }
 
-// Fetch viewer details and add test element for testing
+// Insert mock viewer data for testing Firestore connection
+async function insertMockViewer() {
+  const viewerCol = collection(db, "viewers");
+  const mockViewer = {
+    name: "Test User",
+    headline: "Testing Headline",
+    company: "Test Company",
+    timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+  };
+  await addDoc(viewerCol, mockViewer);
+}
+
+// Fetch viewer details and show in table
 async function fetchViewerDetails() {
-  const viewerTable = document.getElementById('viewerTable');
-  let html = '';
-  // Add a test viewer row for testing
-  html += `<tr><td>Test User</td><td>Testing Headline</td><td>Test Company</td><td>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td></tr>`;
-  // Fetch from Firestore
-  const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(20));
-  const snapshot = await getDocs(q);
-  snapshot.forEach(doc => {
-    const d = doc.data();
-    html += `<tr><td>${d.name || ''}</td><td>${d.headline || ''}</td><td>${d.company || ''}</td><td>${d.timestamp || ''}</td></tr>`;
-  });
-  viewerTable.innerHTML = html;
+  try {
+    const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(30));
+    const snapshot = await getDocs(q);
+    let html = "";
+    if (snapshot.empty) {
+      html = `<tr><td colspan="4" style="padding:1em;text-align:center;color:#888;">No viewer data yet. Use Test DB to add sample data or run the scraper.</td></tr>`;
+    } else {
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<tr><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.name || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.headline || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.company || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.timestamp || 'N/A'}</td></tr>`;
+      });
+    }
+    // Add test element row for visual confirmation
+    html += `<tr style='background:#ffe;'><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Element</td><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Headline</td><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Company</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td></tr>`;
+    document.getElementById('viewerTable').innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching viewer details:', error);
+    document.getElementById('viewerTable').innerHTML = `<tr><td colspan="4" style="padding:1em;text-align:center;color:#f44;">Error loading viewer data: ${error.message}</td></tr>`;
+  }
 }
 
-// Status bar logic
-function setStatusBar(status) {
-  const bar = document.getElementById('status-bar');
-  bar.textContent = status;
-  bar.style.background = status === 'Scraping...' ? '#ff9800' : (status === 'Stopped' ? '#ff4f4f' : '#4f8cff');
+// Insert mock daily total for testing
+async function insertMockDailyTotal() {
+  try {
+    const dailyCol = collection(db, "daily_totals");
+    const today = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+    const randomTotal = Math.floor(Math.random()*100)+1;
+    await addDoc(dailyCol, { date: today, total: randomTotal });
+    console.log('Mock daily total added successfully');
+  } catch (error) {
+    console.error('Error adding mock daily total:', error);
+  }
 }
 
-window.launchScrape = async function() {
-  setStatusBar('Scraping...');
-  document.getElementById('launchBtn').disabled = true;
-  document.getElementById('launchBtn').textContent = 'Scraping...';
-  await fetch(`${BACKEND_URL}/api/scrape`, { method: 'POST' });
-  setStatusBar('Idle');
-  document.getElementById('launchBtn').disabled = false;
-  document.getElementById('launchBtn').textContent = 'Launch!!';
-  fetchTotalViewers();
-  fetchDailyTotals();
-  fetchScreenshots();
-  fetchViewerDetails();
+// Insert mock viewer data for testing Firestore connection
+async function insertMockViewer() {
+  try {
+    const viewerCol = collection(db, "viewers");
+    const mockViewer = {
+      name: "Test User " + Math.floor(Math.random()*1000),
+      headline: "Testing Headline",
+      company: "Test Company",
+      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    };
+    await addDoc(viewerCol, mockViewer);
+    console.log('Mock viewer added successfully');
+  } catch (error) {
+    console.error('Error adding mock viewer:', error);
+  }
+}
+
+// Status bar logic (removed duplicate, only in global script)
+
+// Removed duplicate window functions (moved to global scope)
+
+// Make functions globally accessible for button handlers
+window.fetchTotalViewers = fetchTotalViewers;
+window.fetchDailyTotals = fetchDailyTotals;
+window.fetchScreenshots = fetchScreenshots;
+window.fetchViewerDetails = fetchViewerDetails;
+window.insertMockViewer = insertMockViewer;
+window.insertMockDailyTotal = insertMockDailyTotal;
+
+// Global functions for screenshot popup
+window.openScreenshotPopup = function(url) {
+  document.getElementById('popup-img').src = url;
+  document.getElementById('screenshot-popup').style.display = 'flex';
 };
-window.stopScrape = async function() {
-  setStatusBar('Stopped');
-  await fetch(`${BACKEND_URL}/api/stop-scrape`, { method: 'POST' });
+
+window.closeScreenshotPopup = function() {
+  document.getElementById('screenshot-popup').style.display = 'none';
+};
+
+// TEST: Insert mock data to check Firestore connection
+window.testFirestore = async function() {
+  try {
+    document.getElementById('status-bar').textContent = 'Testing DB...';
+    document.getElementById('status-bar').style.background = '#ff9800';
+    
+    await insertMockViewer();
+    await insertMockDailyTotal();
+    
+    // Refresh all data
+    await fetchViewerDetails();
+    await fetchTotalViewers();
+    await fetchDailyTotals();
+    await fetchScreenshots();
+    
+    document.getElementById('status-bar').textContent = 'DB Test Complete';
+    document.getElementById('status-bar').style.background = '#4caf50';
+    
+    setTimeout(() => {
+      document.getElementById('status-bar').textContent = 'Idle';
+      document.getElementById('status-bar').style.background = '#4f8cff';
+    }, 3000);
+  } catch (error) {
+    console.error('Test failed:', error);
+    document.getElementById('status-bar').textContent = 'DB Test Failed';
+    document.getElementById('status-bar').style.background = '#ff4f4f';
+  }
 };
 
 // Initial load
@@ -168,6 +274,56 @@ fetchTotalViewers();
 fetchDailyTotals();
 fetchScreenshots();
 fetchViewerDetails();
+  </script>
+  <script>
+function setStatusBar(status) {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = status;
+  bar.style.background = status === 'Scraping...' ? '#ff9800' : (status === 'Stopped' ? '#ff4f4f' : '#4f8cff');
+}
+
+async function launchScrape() {
+  setStatusBar('Scraping...');
+  document.getElementById('launchBtn').disabled = true;
+  document.getElementById('launchBtn').textContent = 'Scraping...';
+  
+  try {
+    const response = await fetch((location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com') + '/api/scrape', { method: 'POST' });
+    const result = await response.json();
+    
+    setStatusBar('Idle');
+    document.getElementById('launchBtn').disabled = false;
+    document.getElementById('launchBtn').textContent = 'Launch!!';
+    
+    // Refresh all data after scraping
+    if (window.fetchTotalViewers) await window.fetchTotalViewers();
+    if (window.fetchDailyTotals) await window.fetchDailyTotals();
+    if (window.fetchScreenshots) await window.fetchScreenshots();
+    if (window.fetchViewerDetails) await window.fetchViewerDetails();
+  } catch (error) {
+    console.error('Scrape failed:', error);
+    setStatusBar('Scrape Failed');
+    document.getElementById('launchBtn').disabled = false;
+    document.getElementById('launchBtn').textContent = 'Launch!!';
+  }
+}
+
+async function stopScrape() {
+  setStatusBar('Stopped');
+  try {
+    await fetch((location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com') + '/api/stop-scrape', { method: 'POST' });
+  } catch (error) {
+    console.error('Stop failed:', error);
+  }
+}
+
+function testFirestore() {
+  if (window.testFirestore) {
+    window.testFirestore();
+  } else {
+    console.error('testFirestore function not available');
+  }
+}
   </script>
 </body>
 </html>
