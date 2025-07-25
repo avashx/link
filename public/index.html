@@ -20,19 +20,20 @@
 <body>
   <nav style="background: #fff; color: #222; padding: 1.5em 2em; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
     <div style="font-size: 2em; font-weight: bold; letter-spacing: 1px;">Profile Analytics</div>
-    <button class="btn" onclick="launchScrape()" style="background:#222;color:#fff;">Launch!!</button>
+    <div id="status-bar" style="font-size:1.2em;color:#fff;background:#4f8cff;padding:0.5em 1.5em;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-right:2em;">Idle</div>
+    <button class="btn" id="launchBtn" onclick="launchScrape()" style="background:#222;color:#fff;">Launch!!</button>
+    <button class="btn" onclick="stopScrape()" style="background:#ff4f4f;color:#fff;margin-left:1em;">Stop</button>
   </nav>
   <div id="screenshot-popup" onclick="closeScreenshotPopup()"><img id="popup-img" src="" alt="Screenshot"></div>
   <main style="max-width: 1200px; margin: 3em auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 32px rgba(0,0,0,0.07); padding: 3em;">
     <section style="margin-bottom: 3em; display: flex; gap: 4em; justify-content: space-between;">
       <div style="flex:1;">
         <h2 style="font-size: 2em; font-weight: 700; margin-bottom: 1em; color:#222;">Total Viewers</h2>
-        <div style="font-size: 3em; font-weight: bold; color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
+        <div style="font-size: 3em; font-weight: bold, color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
         <div id="last-updated" style="font-size:1em;color:#888;margin-top:0.5em;"></div>
       </div>
       <div style="flex:2;">
-        <input type="file" id="csvInput" accept=".csv" style="margin-bottom:1em;" />
-        <div id="csvTable" style="margin-top:1em;"></div>
+        <div id="dailyTotalsTable" style="margin-top:1em;"></div>
       </div>
     </section>
     <section style="margin-bottom: 3em;">
@@ -65,151 +66,88 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-    const firebaseConfig = {
-      apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
-      authDomain: "linkrtdb.firebaseapp.com",
-      projectId: "linkrtdb",
-      storageBucket: "linkrtdb.firebasestorage.app",
-      messagingSenderId: "250414480081",
-      appId: "1:250414480081:web:79de7428b63923578063f0",
-      measurementId: "G-EZ2XERVTK7"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    // Save a viewer
-    async function saveViewer(viewer) {
-      await addDoc(collection(db, "viewers"), viewer);
-    }
-    // Fetch all viewers
-    async function fetchViewersFromFirebase() {
-      const querySnapshot = await getDocs(collection(db, "viewers"));
-      const viewers = [];
-      querySnapshot.forEach((doc) => {
-        viewers.push(doc.data());
-      });
-      // Use viewers array to update your dashboard
-      // Example: update table
-      document.getElementById('viewerTable').innerHTML = viewers.map(v =>
-        `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
-      ).join('');
-      document.getElementById('total').textContent = viewers.length;
-    }
-    // Call this on page load
-    fetchViewersFromFirebase();
-    // You can also call saveViewer({...}) to add a viewer
-  </script>
-  <script>
-    async function fetchViewers() {
-      const res = await fetch('/api/viewers');
-      const data = await res.json();
-      // Show total viewers
-      document.getElementById('total').textContent = data.total || 0;
-      // Show last updated
-      let lastUpdated = '';
-      if (data.allViewers && data.allViewers.length) {
-        lastUpdated = data.allViewers[0].timestamp ? new Date(data.allViewers[0].timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '';
-      }
-      document.getElementById('last-updated').textContent = lastUpdated ? `Last updated: ${lastUpdated}` : '';
-      // Show free viewers and all viewers
-      let viewerRows = [];
-      if (data.freeViewers && data.freeViewers.length) {
-        viewerRows = data.freeViewers.map(v =>
-          `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
-        );
-      } else if (data.allViewers && data.allViewers.length) {
-        viewerRows = data.allViewers.map(v =>
-          `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
-        );
-      }
-      document.getElementById('viewerTable').innerHTML = viewerRows.join('');
-    // CSV upload and display
-    document.getElementById('csvInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        const text = evt.target.result;
-        const rows = text.split('\n').map(r => r.split(','));
-        let html = '<table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;">';
-        rows.forEach((row, i) => {
-          html += '<tr>' + row.map(cell => `<td style="padding:0.5em;border-bottom:1px solid #eee;color:#222;">${cell}</td>`).join('') + '</tr>';
-        });
-        html += '</table>';
-        document.getElementById('csvTable').innerHTML = html;
-      };
-      reader.readAsText(file);
-    });
-      // Chart
-      if (window.trendChartInstance) window.trendChartInstance.destroy();
-      const ctx = document.getElementById('trendChart').getContext('2d');
-      window.trendChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.viewers.map(v => v.timestamp.split('T')[0]),
-          datasets: [{
-            label: 'Viewers',
-            data: data.viewers.map((v, i) => i + 1),
-            borderColor: '#4f8cff',
-            backgroundColor: 'rgba(79,140,255,0.1)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          plugins: { legend: { display: false } },
-          scales: { x: { display: true }, y: { display: true } }
-        }
-      });
-      // Screenshot OCR table: left timestamp, right thumbnail, names
-      fetch('/api/screenshot-ocr').then(r => r.json()).then(({ results }) => {
-        let html = '<table style="width:100%;border-collapse:collapse;background:#fff;">';
-        html += '<tr><th style="padding:0.7em;color:#222;">Timestamp</th><th style="padding:0.7em;color:#222;">Screenshot</th><th style="padding:0.7em;color:#222;">Names</th></tr>';
-        results.slice(-6).reverse().forEach(row => {
-          html += `<tr>
-            <td style="padding:0.7em;color:#222;">${row.timestamp}</td>
-            <td style="padding:0.7em;"><img src="/screenshots/${row.file}?t=${Date.now()}" class="screenshot-img" onclick="showScreenshotPopup('/screenshots/${row.file}?t=${Date.now()}')"></td>
-            <td style="padding:0.7em;color:#222;">${row.names.join('<br>')}</td>
-          </tr>`;
-        });
-        html += '</table>';
-        document.getElementById('screenshot-table').innerHTML = html;
-      });
-    function showScreenshotPopup(src) {
-      document.getElementById('popup-img').src = src;
-      document.getElementById('screenshot-popup').style.display = 'flex';
-    }
-    function closeScreenshotPopup() {
-      document.getElementById('screenshot-popup').style.display = 'none';
-      document.getElementById('popup-img').src = '';
-    }
-    }
-    async function fetchLogs() {
-      const res = await fetch('/api/logs');
-      const data = await res.json();
-      // Color-coded log rendering
-      document.getElementById('logs').innerHTML = data.logs.map(log => {
-        let color = '#fff';
-        if (log.includes('[INFO]')) color = '#4f8cff';
-        else if (log.includes('[ERROR]')) color = '#ff4f4f';
-        else if (log.includes('[WARN]')) color = '#ffd700';
-        else if (log.includes('[NETWORK]')) color = '#2ecc40';
-        else if (log.includes('[DEBUG]')) color = '#a259ff';
-        else if (log.toLowerCase().includes('connecting')) color = '#ffa500';
-        else if (log.toLowerCase().includes('connected')) color = '#2ecc40';
-        return `<span style="color:${color};display:block;margin-bottom:2px;">${log}</span>`;
-      }).join('');
-    }
-    async function launchScrape() {
-      await fetch('/api/scrape', { method: 'POST' });
-      fetchViewers();
-      fetchLogs();
-    }
-    setInterval(fetchViewers, 5000);
-    setInterval(fetchLogs, 2000);
-    fetchViewers();
-    fetchLogs();
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+  authDomain: "linkrtdb.firebaseapp.com",
+  projectId: "linkrtdb",
+  storageBucket: "linkrtdb.appspot.com",
+  messagingSenderId: "250414480081",
+  appId: "1:250414480081:web:79de7428b63923578063f0",
+  measurementId: "G-EZ2XERVTK7"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Fetch daily totals and show table
+async function fetchDailyTotals() {
+  const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(30));
+  const snapshot = await getDocs(q);
+  let html = '<table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;">';
+  html += '<tr><th>Date</th><th>Total Viewers</th></tr>';
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    html += `<tr><td>${d.date}</td><td>${d.total}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('dailyTotalsTable').innerHTML = html;
+}
+
+// Fetch screenshots from Firebase Storage and show
+async function fetchScreenshots() {
+  const listRef = ref(storage, 'screenshots/');
+  const res = await listAll(listRef);
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:1em;">';
+  for (const itemRef of res.items) {
+    const url = await getDownloadURL(itemRef);
+    // Parse timestamp from filename
+    const ts = itemRef.name.replace('profile-views-', '').replace('.png', '').replace(/-/g, '/');
+    html += `<div><img src="${url}" style="max-width:220px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:0.5em;"><div style="text-align:center;color:#222;font-size:0.9em;">${ts} IST</div></div>`;
+  }
+  html += '</div>';
+  document.getElementById('screenshot-table').innerHTML = html;
+}
+
+// Fetch total viewers from latest daily total
+async function fetchTotalViewers() {
+  const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
+  const snapshot = await getDocs(q);
+  let total = 0;
+  snapshot.forEach(doc => { total = doc.data().total; });
+  document.getElementById('total').textContent = total;
+}
+
+// Status bar logic
+function setStatusBar(status) {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = status;
+  bar.style.background = status === 'Scraping...' ? '#ff9800' : (status === 'Stopped' ? '#ff4f4f' : '#4f8cff');
+}
+
+window.launchScrape = async function() {
+  setStatusBar('Scraping...');
+  document.getElementById('launchBtn').disabled = true;
+  document.getElementById('launchBtn').textContent = 'Scraping...';
+  await fetch('https://link-q2qi.onrender.com/api/scrape', { method: 'POST' });
+  setStatusBar('Idle');
+  document.getElementById('launchBtn').disabled = false;
+  document.getElementById('launchBtn').textContent = 'Launch!!';
+  fetchTotalViewers();
+  fetchDailyTotals();
+  fetchScreenshots();
+};
+window.stopScrape = async function() {
+  setStatusBar('Stopped');
+  await fetch('https://link-q2qi.onrender.com/api/stop-scrape', { method: 'POST' });
+};
+
+// Initial load
+fetchTotalViewers();
+fetchDailyTotals();
+fetchScreenshots();
   </script>
 </body>
 </html>
