@@ -66,9 +66,10 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+
+// Backend API base URL: use localhost for dev, Render for prod
+const BACKEND_URL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
+
 const firebaseConfig = {
   apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
   authDomain: "linkrtdb.firebaseapp.com",
@@ -131,7 +132,7 @@ window.launchScrape = async function() {
   setStatusBar('Scraping...');
   document.getElementById('launchBtn').disabled = true;
   document.getElementById('launchBtn').textContent = 'Scraping...';
-  await fetch('https://link-q2qi.onrender.com/api/scrape', { method: 'POST' });
+  await fetch(`${BACKEND_URL}/api/scrape`, { method: 'POST' });
   setStatusBar('Idle');
   document.getElementById('launchBtn').disabled = false;
   document.getElementById('launchBtn').textContent = 'Launch!!';
@@ -141,7 +142,7 @@ window.launchScrape = async function() {
 };
 window.stopScrape = async function() {
   setStatusBar('Stopped');
-  await fetch('https://link-q2qi.onrender.com/api/stop-scrape', { method: 'POST' });
+  await fetch(`${BACKEND_URL}/api/stop-scrape`, { method: 'POST' });
 };
 
 // Initial load
