@@ -5,7 +5,7 @@
   <style>
     body { font-family: sans-serif; background: #f6f6f6; margin: 0; padding: 2em; }
     .btn { background: #333; color: #fff; padding: 1em 2em; border: none; border-radius: 5px; cursor: pointer; }
-    .log { font-family: monospace; margin-top: 2em; }
+    .log { font-family: monospace; margin-top: 2em; max-height: 300px; overflow-y: auto; }
     .viewer { background: #fff; margin: 1em 0; padding: 1em; border-radius: 5px; }
     .screenshot-img { max-width:220px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:transform 0.2s; }
     .screenshot-img:hover { transform:scale(1.05); }
@@ -30,11 +30,44 @@
     <section style="margin-bottom: 3em; display: flex; gap: 4em; justify-content: space-between;">
       <div style="flex:1;">
         <h2 style="font-size: 2em; font-weight: 700; margin-bottom: 1em; color:#222;">Total Viewers</h2>
+        <div style="display: flex; align-items: center; gap: 1em; margin-bottom: 1em;">
+          <input type="date" id="dateSelector" style="padding: 0.5em; border: 1px solid #ddd; border-radius: 5px; font-size: 1em;" onchange="fetchTotalByDate()">
+          <button onclick="fetchLatestTotal()" style="padding: 0.5em 1em; background: #4f8cff; color: white; border: none; border-radius: 5px; cursor: pointer;">Latest</button>
+        </div>
         <div style="font-size: 3em; font-weight: bold; color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
         <div id="last-updated" style="font-size:1em;color:#888;margin-top:0.5em;"></div>
+        <div id="selected-date-info" style="font-size:1em;color:#666;margin-top:0.5em;"></div>
       </div>
       <div style="flex:2;">
         <div id="dailyTotalsTable" style="margin-top:1em;"></div>
+      </div>
+    </section>
+    <section style="margin-bottom: 3em;">
+      <h3 style="font-size: 1.3em; font-weight: 600; margin-bottom: 1em; color:#222;">📈 View Increase Updates</h3>
+      <div style="background:#fafafa; border-radius:12px; padding:2em;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1em;">
+          <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 1 Hour</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #4caf50;" id="increase-1h">+0</div>
+          </div>
+          <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 3 Hours</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #2196f3;" id="increase-3h">+0</div>
+          </div>
+          <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 6 Hours</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #ff9800;" id="increase-6h">+0</div>
+          </div>
+          <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 12 Hours</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #e91e63;" id="increase-12h">+0</div>
+          </div>
+          <div style="background: #fff; padding: 1em; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 0.9em; color: #666; margin-bottom: 0.5em;">Past 24 Hours</div>
+            <div style="font-size: 1.5em; font-weight: bold; color: #9c27b0;" id="increase-24h">+0</div>
+          </div>
+        </div>
+        <div id="last-update-time" style="text-align: center; margin-top: 1em; font-size: 0.9em; color: #888;"></div>
       </div>
     </section>
     <section style="margin-bottom: 3em;">
@@ -68,7 +101,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 // Backend API base URL: use localhost for dev, Render for prod
@@ -132,24 +165,168 @@ async function fetchScreenshots() {
   }
 }
 
-// Fetch total viewers from latest daily total
-async function fetchTotalViewers() {
+// Fetch total viewers from latest daily total or by specific date
+async function fetchTotalViewers(selectedDate = null) {
   try {
-    const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
+    let q;
+    if (selectedDate) {
+      // Fetch for specific date
+      q = query(collection(db, "daily_totals"), 
+                where("date", "==", selectedDate), 
+                orderBy("timestamp", "desc"), 
+                limit(1));
+    } else {
+      // Fetch latest
+      q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
+    }
+    
     const snapshot = await getDocs(q);
     let total = 0;
-    snapshot.forEach(doc => { total = doc.data().total; });
+    let dateInfo = '';
+    
+    if (!snapshot.empty) {
+      snapshot.forEach(doc => { 
+        const data = doc.data();
+        total = data.total;
+        dateInfo = data.date;
+      });
+      document.getElementById('last-updated').textContent = `Last updated: ${dateInfo}`;
+    } else if (selectedDate) {
+      document.getElementById('last-updated').textContent = `No data found for ${selectedDate}`;
+    }
+    
     document.getElementById('total').textContent = total;
     
+    if (selectedDate) {
+      document.getElementById('selected-date-info').textContent = `Showing data for: ${selectedDate}`;
+    } else {
+      document.getElementById('selected-date-info').textContent = 'Showing latest data';
+    }
+    
     // Also try to get from viewers collection if no daily totals
-    if (total === 0) {
+    if (total === 0 && !selectedDate) {
       const viewersQ = query(collection(db, "viewers"));
       const viewersSnapshot = await getDocs(viewersQ);
       document.getElementById('total').textContent = viewersSnapshot.size;
+      document.getElementById('last-updated').textContent = 'Calculated from total viewer records';
     }
   } catch (error) {
     console.error('Error fetching total viewers:', error);
     document.getElementById('total').textContent = '0';
+    document.getElementById('last-updated').textContent = 'Error loading data';
+  }
+}
+
+// Fetch total by selected date
+async function fetchTotalByDate() {
+  const selectedDate = document.getElementById('dateSelector').value;
+  if (selectedDate) {
+    // Convert YYYY-MM-DD to DD/MM/YYYY format for Firestore
+    const [year, month, day] = selectedDate.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+    await fetchTotalViewers(formattedDate);
+  }
+}
+
+// Calculate view increases for different time periods
+async function fetchViewIncreases() {
+  try {
+    const now = new Date();
+    const periods = [
+      { id: 'increase-1h', hours: 1 },
+      { id: 'increase-3h', hours: 3 },
+      { id: 'increase-6h', hours: 6 },
+      { id: 'increase-12h', hours: 12 },
+      { id: 'increase-24h', hours: 24 }
+    ];
+
+    // Get current total
+    const currentQ = query(collection(db, "daily_totals"), orderBy("timestamp", "desc"), limit(1));
+    const currentSnapshot = await getDocs(currentQ);
+    let currentTotal = 0;
+    if (!currentSnapshot.empty) {
+      currentSnapshot.forEach(doc => { currentTotal = doc.data().total; });
+    }
+
+    for (const period of periods) {
+      try {
+        const pastTime = new Date(now.getTime() - (period.hours * 60 * 60 * 1000));
+        
+        // Get the closest record to the past time
+        const pastQ = query(
+          collection(db, "daily_totals"), 
+          where("timestamp", "<=", pastTime.toISOString()),
+          orderBy("timestamp", "desc"), 
+          limit(1)
+        );
+        const pastSnapshot = await getDocs(pastQ);
+        
+        let pastTotal = 0;
+        if (!pastSnapshot.empty) {
+          pastSnapshot.forEach(doc => { pastTotal = doc.data().total; });
+        }
+        
+        const increase = Math.max(0, currentTotal - pastTotal);
+        const element = document.getElementById(period.id);
+        if (element) {
+          element.textContent = `+${increase}`;
+        }
+      } catch (error) {
+        console.error(`Error calculating ${period.hours}h increase:`, error);
+        const element = document.getElementById(period.id);
+        if (element) {
+          element.textContent = '+0';
+        }
+      }
+    }
+    
+    // Update last update time
+    const lastUpdateElement = document.getElementById('last-update-time');
+    if (lastUpdateElement) {
+      lastUpdateElement.textContent = `Last updated: ${now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}`;
+    }
+  } catch (error) {
+    console.error('Error fetching view increases:', error);
+  }
+}
+
+// Fetch latest total (reset date selector)
+async function fetchLatestTotal() {
+  document.getElementById('dateSelector').value = '';
+  await fetchTotalViewers();
+}
+
+// Fetch and display live logs (updated version)
+async function fetchLiveLogs() {
+  try {
+    const backendURL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
+    const response = await fetch(`${backendURL}/api/logs`);
+    const data = await response.json();
+    const logsDiv = document.getElementById('logs');
+    if (data.logs && data.logs.length > 0) {
+      // Convert array to HTML with proper line breaks and styling
+      const logLines = data.logs.slice(0, 20).map(log => {
+        // Add basic styling based on log type
+        if (log.includes('[ERROR]')) {
+          return `<div style="color: #f44; margin: 2px 0;">${log}</div>`;
+        } else if (log.includes('[INFO]')) {
+          return `<div style="color: #333; margin: 2px 0;">${log}</div>`;
+        } else if (log.includes('[DEBUG]')) {
+          return `<div style="color: #666; margin: 2px 0;">${log}</div>`;
+        } else {
+          return `<div style="margin: 2px 0;">${log}</div>`;
+        }
+      }).join('');
+      logsDiv.innerHTML = logLines;
+      
+      // Auto-scroll to bottom
+      logsDiv.scrollTop = logsDiv.scrollHeight;
+    } else {
+      logsDiv.innerHTML = '<div style="color: #888; text-align: center; padding: 1em;">No logs yet. Click Launch!! to start scraping.</div>';
+    }
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    document.getElementById('logs').innerHTML = '<div style="color: #f44; text-align: center; padding: 1em;">Error loading logs.</div>';
   }
 }
 
@@ -264,6 +441,9 @@ window.insertMockDailyTotal = insertMockDailyTotal;
 window.fetchLiveLogs = fetchLiveLogs;
 window.startLogRefresh = startLogRefresh;
 window.stopLogRefresh = stopLogRefresh;
+window.fetchViewIncreases = fetchViewIncreases;
+window.fetchTotalByDate = fetchTotalByDate;
+window.fetchLatestTotal = fetchLatestTotal;
 window.openScreenshotPopup = function(url) {
   document.getElementById('popup-img').src = url;
   document.getElementById('screenshot-popup').style.display = 'flex';
@@ -287,6 +467,7 @@ window.moduleTestFirestore = async function() {
     await fetchTotalViewers();
     await fetchDailyTotals();
     await fetchScreenshots();
+    await fetchViewIncreases();
     
     document.getElementById('status-bar').textContent = 'DB Test Complete';
     document.getElementById('status-bar').style.background = '#4caf50';
@@ -308,7 +489,11 @@ fetchDailyTotals();
 fetchScreenshots();
 fetchViewerDetails();
 fetchLiveLogs();
+fetchViewIncreases();
 startLogRefresh();
+
+// Set up auto-refresh for view increases every 5 minutes
+setInterval(fetchViewIncreases, 5 * 60 * 1000);
   </script>
   <script>
 function setStatusBar(status) {
@@ -339,6 +524,7 @@ async function launchScrape() {
     if (window.fetchScreenshots) await window.fetchScreenshots();
     if (window.fetchViewerDetails) await window.fetchViewerDetails();
     if (window.fetchLiveLogs) await window.fetchLiveLogs();
+    if (window.fetchViewIncreases) await window.fetchViewIncreases();
     
     // Reset status to idle after 3 seconds
     setTimeout(() => {
