@@ -114,11 +114,28 @@ async function fetchScreenshots() {
 
 // Fetch total viewers from latest daily total
 async function fetchTotalViewers() {
+  // For testing, set to 99 if no data
   const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(1));
   const snapshot = await getDocs(q);
-  let total = 0;
+  let total = 99;
   snapshot.forEach(doc => { total = doc.data().total; });
   document.getElementById('total').textContent = total;
+}
+
+// Fetch viewer details and add test element for testing
+async function fetchViewerDetails() {
+  const viewerTable = document.getElementById('viewerTable');
+  let html = '';
+  // Add a test viewer row for testing
+  html += `<tr><td>Test User</td><td>Testing Headline</td><td>Test Company</td><td>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td></tr>`;
+  // Fetch from Firestore
+  const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(20));
+  const snapshot = await getDocs(q);
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    html += `<tr><td>${d.name || ''}</td><td>${d.headline || ''}</td><td>${d.company || ''}</td><td>${d.timestamp || ''}</td></tr>`;
+  });
+  viewerTable.innerHTML = html;
 }
 
 // Status bar logic
@@ -139,6 +156,7 @@ window.launchScrape = async function() {
   fetchTotalViewers();
   fetchDailyTotals();
   fetchScreenshots();
+  fetchViewerDetails();
 };
 window.stopScrape = async function() {
   setStatusBar('Stopped');
@@ -149,6 +167,7 @@ window.stopScrape = async function() {
 fetchTotalViewers();
 fetchDailyTotals();
 fetchScreenshots();
+fetchViewerDetails();
   </script>
 </body>
 </html>
