@@ -7,6 +7,8 @@ const path = require('path');
 const { processAllScreenshots } = require('./ocr');
 
 let logs = [];
+let scrapingProcess = null;
+let cronTask = null;
 
 function log(type, message) {
   const color = {
@@ -93,7 +95,10 @@ app.post('/api/scrape', async (req, res) => {
     log('INFO', '🚀 Starting scrape process (manual trigger)');
     log('INFO', '📋 Initializing LinkedIn scraper...');
     
-    const result = await scrapeProfileViews(log);
+    // Store the scraping process
+    scrapingProcess = scrapeProfileViews(log);
+    const result = await scrapingProcess;
+    scrapingProcess = null;
     
     log('INFO', '✅ Scrape process completed successfully');
     log('INFO', `📊 Results: ${result.totalViewers || 0} total viewers, ${result.allViewers?.length || 0} detailed records`);
@@ -101,23 +106,82 @@ app.post('/api/scrape', async (req, res) => {
     res.json({ status: 'done', result });
   } catch (error) {
     log('ERROR', `❌ Scrape failed: ${error.message}`);
+    scrapingProcess = null;
     res.status(500).json({ status: 'error', message: error.message });
   }
 });
 
-app.post('/api/stop-scrape', (req, res) => {
-  log('INFO', 'Stop scrape requested');
-  // Note: The current scraper doesn't support stopping mid-process
-  // This endpoint exists for frontend compatibility
-  res.json({ status: 'stop requested' });
+// Enhanced stop endpoints
+app.post('/api/stop-scraper', (req, res) => {
+  log('INFO', '⏹ Stop scraper request received');
+  
+  try {
+    // Stop the cron task if running
+    if (cronTask) {
+      cronTask.stop();
+      log('INFO', '⏹ Scheduled scraping stopped');
+    }
+    
+    // Note: Current scraper doesn't support mid-process stopping
+    // But we can log the request and clear the process reference
+    if (scrapingProcess) {
+      log('INFO', '⚠️ Scraping process is currently running - will complete current cycle');
+      scrapingProcess = null;
+    }
+    
+    log('INFO', '✅ Stop command processed successfully');
+    res.json({ 
+      status: 'stopped', 
+      message: 'Scraper stop command processed',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    log('ERROR', `❌ Error stopping scraper: ${error.message}`);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
 
-// Schedule every 3 minutes
-cron.schedule('*/3 * * * *', () => {
-  log('DEBUG', 'Starting scrapeProfileViews (cron)');
-  scrapeProfileViews(log);
-  log('DEBUG', 'Finished scrapeProfileViews (cron)');
-  log('INFO', 'Scheduled scrape triggered');
+// Alternative stop endpoint for compatibility
+app.post('/api/stop', (req, res) => {
+  log('INFO', '⏹ Alternative stop endpoint called');
+  
+  try {
+    if (cronTask) {
+      cronTask.stop();
+      log('INFO', '⏹ Scheduled scraping stopped via /api/stop');
+    }
+    
+    res.json({ 
+      status: 'stopped', 
+      message: 'Scraper stopped successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    log('ERROR', `❌ Error in stop endpoint: ${error.message}`);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
+
+// Start scheduled scraping
+function startScheduledScraping() {
+  if (cronTask) {
+    cronTask.destroy();
+  }
+  
+  // Schedule every 30 minutes by default
+  cronTask = cron.schedule('*/30 * * * *', () => {
+    log('DEBUG', 'Starting scheduled scrape...');
+    scrapeProfileViews(log).then(() => {
+      log('DEBUG', 'Scheduled scrape completed');
+    }).catch(error => {
+      log('ERROR', `Scheduled scrape failed: ${error.message}`);
+    });
+  });
+  
+  log('INFO', '📅 Scheduled scraping started (every 30 minutes)');
+}
+
+// Start the scheduled scraping when server starts
+startScheduledScraping();
 
 app.listen(3000, () => log('INFO', 'Server running on http://localhost:3000'));
