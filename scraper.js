@@ -15,7 +15,7 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket();
+const bucket = admin.storage().bucket('linkrtdb.appspot.com');
 
 puppeteer.use(StealthPlugin());
 
@@ -157,29 +157,60 @@ async function scrapeProfileViews(log) {
     const formattedTime = timePart.replace(/:/g, '-').replace(' ', '_');
     const screenshotName = `profile-views-${formattedDate}_${formattedTime}.png`;
     
-    const screenshotPath = path.join(__dirname, screenshotName);
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    log('INFO', `📸 Screenshot saved locally: ${screenshotName}`);
+    // Save screenshot to public/screenshots directory for web access
+    const publicScreenshotDir = path.join(__dirname, 'public', 'screenshots');
+    if (!fs.existsSync(publicScreenshotDir)) {
+      fs.mkdirSync(publicScreenshotDir, { recursive: true });
+    }
+    const publicScreenshotPath = path.join(publicScreenshotDir, screenshotName);
+    
+    await page.screenshot({ path: publicScreenshotPath, fullPage: true });
+    log('INFO', `📸 Screenshot saved to public directory: ${screenshotName}`);
 
-    // Upload screenshot to Firebase Storage
-    log('INFO', '☁️ Uploading screenshot to Firebase Storage...');
+    // Upload screenshot to Firebase Storage (with fallback)
+    log('INFO', '☁️ Attempting to upload screenshot to Firebase Storage...');
+    let firebaseUploaded = false;
     try {
-      await bucket.upload(screenshotPath, {
-        destination: `screenshots/${screenshotName}`,
+      // Read the screenshot file
+      const screenshotBuffer = fs.readFileSync(publicScreenshotPath);
+      
+      // Try to upload to Firebase Storage
+      const file = bucket.file(`screenshots/${screenshotName}`);
+      await file.save(screenshotBuffer, {
         metadata: {
+          contentType: 'image/png',
           metadata: {
             timestamp: istTime,
-            totalViewers: result.totalViewers.toString()
+            totalViewers: result.totalViewers.toString(),
+            uploadTime: new Date().toISOString()
           }
         }
       });
-      log('INFO', '✅ Screenshot uploaded to Firebase Storage');
       
-      // Clean up local screenshot file
-      fs.unlinkSync(screenshotPath);
-      log('INFO', '🧹 Local screenshot file cleaned up');
+      firebaseUploaded = true;
+      log('INFO', '✅ Screenshot uploaded to Firebase Storage successfully');
     } catch (uploadError) {
-      log('ERROR', `❌ Failed to upload screenshot: ${uploadError.message}`);
+      log('ERROR', `⚠️ Firebase Storage upload failed: ${uploadError.message}`);
+      log('INFO', '💾 Screenshot will be served from local public directory instead');
+    }
+    
+    // Save screenshot metadata to Firestore regardless of upload status
+    try {
+      await db.collection('screenshots').add({
+        filename: screenshotName,
+        timestamp: istTime,
+        totalViewers: result.totalViewers,
+        uploadTime: admin.firestore.FieldValue.serverTimestamp(),
+        firebasePath: firebaseUploaded ? `screenshots/${screenshotName}` : null,
+        localPath: `/screenshots/${screenshotName}`, // Web-accessible path
+        status: firebaseUploaded ? 'uploaded' : 'local_only',
+        size: fs.statSync(publicScreenshotPath).size,
+        istTimestamp: now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+      });
+      
+      log('INFO', '📋 Screenshot metadata saved to Firestore');
+    } catch (metadataError) {
+      log('ERROR', `❌ Failed to save screenshot metadata: ${metadataError.message}`);
     }
 
     await browser.close();

@@ -100,9 +100,10 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import { getStorage, ref, getDownloadURL, listAll } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+// Import Firebase modules
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getFirestore, collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getStorage, ref, getDownloadURL, listAll } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
 
 // Backend API base URL: use localhost for dev, Render for prod
 const BACKEND_URL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
@@ -143,25 +144,51 @@ async function fetchDailyTotals() {
   }
 }
 
-// Fetch screenshots from Firebase Storage and show
+// Fetch screenshots from Firestore screenshots collection and show
 async function fetchScreenshots() {
   try {
-    const listRef = ref(storage, 'screenshots/');
-    const res = await listAll(listRef);
+    const q = query(collection(db, "screenshots"), orderBy("uploadTime", "desc"), limit(20));
+    const snapshot = await getDocs(q);
     let html = '<div style="display:flex;flex-wrap:wrap;gap:1em;">';
-    for (const itemRef of res.items) {
-      const url = await getDownloadURL(itemRef);
-      // Parse timestamp from filename (expecting format: YYYY-MM-DD_HH-MM-SS)
-      const filename = itemRef.name.replace('profile-views-', '').replace('.png', '');
-      const [datePart, timePart] = filename.split('_');
-      const displayTime = datePart && timePart ? `${datePart} ${timePart.replace(/-/g, ':')} IST` : filename;
-      html += `<div><img src="${url}" class="screenshot-img" onclick="openScreenshotPopup('${url}')" style="max-width:220px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:0.5em;cursor:pointer;"><div style="text-align:center;color:#222;font-size:0.9em;">${displayTime}</div></div>`;
+    
+    if (snapshot.empty) {
+      html += '<p style="color:#888;text-align:center;width:100%;padding:2em;">No screenshots available yet. Run the scraper to capture screenshots.</p>';
+    } else {
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        let imageUrl = '';
+        
+        // Try Firebase Storage first, then fallback to local
+        if (data.firebasePath && data.status === 'uploaded') {
+          try {
+            const storageRef = ref(storage, data.firebasePath);
+            imageUrl = await getDownloadURL(storageRef);
+          } catch (error) {
+            console.log('Firebase Storage failed, using local path');
+            imageUrl = data.localPath || `/screenshots/${data.filename}`;
+          }
+        } else {
+          // Use local web-accessible path
+          imageUrl = data.localPath || `/screenshots/${data.filename}`;
+        }
+        
+        const displayTime = data.istTimestamp || data.timestamp || 'Unknown time';
+        const viewers = data.totalViewers || 0;
+        
+        html += `<div style="text-align:center;">
+          <img src="${imageUrl}" class="screenshot-img" onclick="openScreenshotPopup('${imageUrl}')" 
+               style="max-width:220px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:0.5em;cursor:pointer;">
+          <div style="color:#222;font-size:0.9em;margin-bottom:0.2em;">${displayTime}</div>
+          <div style="color:#666;font-size:0.8em;">👥 ${viewers} viewers</div>
+        </div>`;
+      }
     }
+    
     html += '</div>';
     document.getElementById('screenshot-table').innerHTML = html;
   } catch (error) {
     console.error('Error fetching screenshots:', error);
-    document.getElementById('screenshot-table').innerHTML = '<p>No screenshots available or error loading.</p>';
+    document.getElementById('screenshot-table').innerHTML = '<p style="color:#f44;">Error loading screenshots: ' + error.message + '</p>';
   }
 }
 
