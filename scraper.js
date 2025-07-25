@@ -23,46 +23,51 @@ async function scrapeProfileViews(log) {
   const path = require('path');
   const COOKIES_PATH = path.join(__dirname, 'linkedin_cookies.json');
   const SCREENSHOT_DIR = path.join(__dirname, 'public');
+  
+  log('INFO', '🔧 Initializing Puppeteer browser...');
   const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
   const page = await browser.newPage();
 
-  // Auto-generate cookies file from .env if not present
-  if (!fs.existsSync(COOKIES_PATH)) {
-    if (process.env.LI_AT && process.env.JSESSIONID) {
-      const cookies = [
-        { name: 'li_at', value: process.env.LI_AT, domain: '.linkedin.com' },
-        { name: 'JSESSIONID', value: process.env.JSESSIONID.replace(/"/g, ''), domain: '.linkedin.com' }
-      ];
-      fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
-      log('INFO', 'linkedin_cookies.json generated from .env');
-    }
-  }
-  // Load cookies from file for stealth
-  if (fs.existsSync(COOKIES_PATH)) {
-    const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH));
-    await page.setCookie(...cookies);
-    log('INFO', 'Session cookies loaded.');
-  } else {
-    log('ERROR', 'No LinkedIn cookies found. Please upload cookies or set .env.');
-    await browser.close();
-    return [];
-  }
-
-  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36');
-  await page.setViewport({ width: 1280, height: 800 });
-
   try {
+    // Auto-generate cookies file from .env if not present
+    if (!fs.existsSync(COOKIES_PATH)) {
+      if (process.env.LI_AT && process.env.JSESSIONID) {
+        const cookies = [
+          { name: 'li_at', value: process.env.LI_AT, domain: '.linkedin.com' },
+          { name: 'JSESSIONID', value: process.env.JSESSIONID.replace(/"/g, ''), domain: '.linkedin.com' }
+        ];
+        fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
+        log('INFO', '🍪 linkedin_cookies.json generated from .env');
+      }
+    }
+    
+    // Load cookies from file for stealth
+    if (fs.existsSync(COOKIES_PATH)) {
+      const cookies = JSON.parse(fs.readFileSync(COOKIES_PATH));
+      await page.setCookie(...cookies);
+      log('INFO', '🍪 Session cookies loaded successfully.');
+    } else {
+      log('ERROR', '❌ No LinkedIn cookies found. Please upload cookies or set .env.');
+      await browser.close();
+      return { totalViewers: 0, freeViewers: [], allViewers: [] };
+    }
+
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1280, height: 800 });
+
+    log('INFO', '🌐 Navigating to LinkedIn profile views page...');
     await page.goto('https://www.linkedin.com/me/profile-views/', { waitUntil: 'networkidle2' });
     await new Promise(res => setTimeout(res, 3000));
 
     // Check for login redirect
     if (page.url().includes('/login')) {
-      log('ERROR', 'Session expired. Please update cookies.');
+      log('ERROR', '🚫 Session expired. Please update cookies.');
       await browser.close();
-      return [];
+      return { totalViewers: 0, freeViewers: [], allViewers: [] };
     }
 
     // Human-like actions for stealth
+    log('INFO', '🤖 Performing human-like interactions...');
     await page.mouse.move(100, 100);
     await page.mouse.move(200, 200);
     await page.mouse.move(300, 300);
@@ -70,6 +75,7 @@ async function scrapeProfileViews(log) {
     await page.evaluate(() => window.scrollBy(0, 500));
     await new Promise(res => setTimeout(res, Math.random() * 2000 + 1000));
 
+    log('INFO', '📊 Extracting viewer data from page...');
     // Use more robust selectors for viewer cards
     const result = await page.evaluate(() => {
       let totalViewers = 0;
@@ -113,9 +119,11 @@ async function scrapeProfileViews(log) {
     });
 
     // Log and save the result
-    log('INFO', `Total Viewers: ${result.totalViewers}, Free Viewers: ${result.freeViewers.length}`);
+    log('INFO', `📈 Total Viewers: ${result.totalViewers}, Free Viewers: ${result.freeViewers.length}`);
     
-    // Save viewer data to Firestore with IST timestamp
+    log('INFO', '💾 Saving viewer data to Firestore...');
+    // Save individual viewers to Firestore
+    let savedCount = 0;
     for (const viewer of result.allViewers) {
       if (viewer.name && viewer.name.trim()) { // Only save if name exists
         const viewerWithTimestamp = {
@@ -124,20 +132,23 @@ async function scrapeProfileViews(log) {
           scraped_at: admin.firestore.FieldValue.serverTimestamp()
         };
         await db.collection('viewers').add(viewerWithTimestamp);
+        savedCount++;
       }
     }
-    log('INFO', 'Viewer data uploaded to Firestore');
+    log('INFO', `✅ Saved ${savedCount} viewer records to Firestore`);
 
     // Save daily total to Firestore
+    log('INFO', '📊 Saving daily total to Firestore...');
     const today = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
     await db.collection('daily_totals').add({
       date: today,
       total: result.totalViewers,
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
-    log('INFO', 'Daily total saved to Firestore');
+    log('INFO', `✅ Daily total (${result.totalViewers}) saved to Firestore`);
 
     // Take screenshot and upload to Firebase Storage with IST timestamp
+    log('INFO', '📸 Taking screenshot...');
     const now = new Date();
     const istTime = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const [datePart, timePart] = istTime.split(', ');
@@ -148,9 +159,10 @@ async function scrapeProfileViews(log) {
     
     const screenshotPath = path.join(__dirname, screenshotName);
     await page.screenshot({ path: screenshotPath, fullPage: true });
-    log('INFO', `Screenshot taken: ${screenshotName}`);
+    log('INFO', `📸 Screenshot saved locally: ${screenshotName}`);
 
     // Upload screenshot to Firebase Storage
+    log('INFO', '☁️ Uploading screenshot to Firebase Storage...');
     try {
       await bucket.upload(screenshotPath, {
         destination: `screenshots/${screenshotName}`,
@@ -161,20 +173,22 @@ async function scrapeProfileViews(log) {
           }
         }
       });
-      log('INFO', 'Screenshot uploaded to Firebase Storage');
+      log('INFO', '✅ Screenshot uploaded to Firebase Storage');
       
       // Clean up local screenshot file
       fs.unlinkSync(screenshotPath);
+      log('INFO', '🧹 Local screenshot file cleaned up');
     } catch (uploadError) {
-      log('ERROR', `Failed to upload screenshot: ${uploadError.message}`);
+      log('ERROR', `❌ Failed to upload screenshot: ${uploadError.message}`);
     }
 
     await browser.close();
+    log('INFO', '✅ Scraping completed successfully');
     return result;
   } catch (error) {
-    log('ERROR', `Error in scrapeProfileViews: ${error.message}`);
+    log('ERROR', `❌ Error in scrapeProfileViews: ${error.message}`);
     await browser.close();
-    return [];
+    return { totalViewers: 0, freeViewers: [], allViewers: [] };
   }
 }
 

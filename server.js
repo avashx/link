@@ -1,3 +1,11 @@
+const express = require('express');
+const scrapeProfileViews = require('./scraper');
+const cron = require('node-cron');
+const fs = require('fs');
+const chalk = require('chalk');
+const path = require('path');
+const { processAllScreenshots } = require('./ocr');
+
 let logs = [];
 
 function log(type, message) {
@@ -9,16 +17,11 @@ function log(type, message) {
     DEBUG: chalk.magenta
   }[type];
   const entry = `${new Date().toLocaleTimeString()} [${type}] ${message}`;
-  logs.unshift((color ? color(entry) : chalk.white(entry)));
+  const plainEntry = `${new Date().toLocaleTimeString()} [${type}] ${message}`;
+  logs.unshift(plainEntry);
   if (logs.length > 100) logs.pop();
+  console.log(color ? color(entry) : entry);
 }
-const express = require('express');
-const scrapeProfileViews = require('./scraper');
-const cron = require('node-cron');
-const fs = require('fs');
-const chalk = require('chalk');
-const path = require('path');
-const { processAllScreenshots } = require('./ocr');
 
 
 
@@ -86,10 +89,20 @@ app.get('/api/logs', (req, res) => {
 });
 
 app.post('/api/scrape', async (req, res) => {
-  log('DEBUG', 'Starting scrapeProfileViews (manual trigger)');
-  await scrapeProfileViews(log);
-  log('DEBUG', 'Finished scrapeProfileViews (manual trigger)');
-  res.json({ status: 'done' });
+  try {
+    log('INFO', '🚀 Starting scrape process (manual trigger)');
+    log('INFO', '📋 Initializing LinkedIn scraper...');
+    
+    const result = await scrapeProfileViews(log);
+    
+    log('INFO', '✅ Scrape process completed successfully');
+    log('INFO', `📊 Results: ${result.totalViewers || 0} total viewers, ${result.allViewers?.length || 0} detailed records`);
+    
+    res.json({ status: 'done', result });
+  } catch (error) {
+    log('ERROR', `❌ Scrape failed: ${error.message}`);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
 
 app.post('/api/stop-scrape', (req, res) => {
