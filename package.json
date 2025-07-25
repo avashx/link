@@ -1,0 +1,33 @@
+{
+  "name": "link",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avashx/link.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/avashx/link/issues"
+  },
+  "homepage": "https://github.com/avashx/link#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1",
+    "playwright": "^1.54.1",
+    "puppeteer": "^24.15.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "sharp": "^0.34.3",
+    "tesseract.js": "^6.0.1"
+  }
+}

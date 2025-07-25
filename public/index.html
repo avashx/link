@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LinkedIn Profile View Tracker</title>
+  <style>
+    body { font-family: sans-serif; background: #f6f6f6; margin: 0; padding: 2em; }
+    .btn { background: #333; color: #fff; padding: 1em 2em; border: none; border-radius: 5px; cursor: pointer; }
+    .log { font-family: monospace; margin-top: 2em; }
+    .viewer { background: #fff; margin: 1em 0; padding: 1em; border-radius: 5px; }
+    .screenshot-img { max-width:220px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); cursor:pointer; transition:transform 0.2s; }
+    .screenshot-img:hover { transform:scale(1.05); }
+    #screenshot-popup {
+      display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.8); z-index:9999;
+      align-items:center; justify-content:center;
+    }
+    #screenshot-popup img { max-width:90vw; max-height:90vh; border-radius:16px; box-shadow:0 4px 32px rgba(0,0,0,0.2); }
+    #screenshot-popup:active { display:none; }
+  </style>
+</head>
+<body>
+  <nav style="background: #fff; color: #222; padding: 1.5em 2em; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee;">
+    <div style="font-size: 2em; font-weight: bold; letter-spacing: 1px;">Profile Analytics</div>
+    <button class="btn" onclick="launchScrape()" style="background:#222;color:#fff;">Launch!!</button>
+  </nav>
+  <div id="screenshot-popup" onclick="closeScreenshotPopup()"><img id="popup-img" src="" alt="Screenshot"></div>
+  <main style="max-width: 1200px; margin: 3em auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 32px rgba(0,0,0,0.07); padding: 3em;">
+    <section style="margin-bottom: 3em; display: flex; gap: 4em; justify-content: space-between;">
+      <div style="flex:1;">
+        <h2 style="font-size: 2em; font-weight: 700; margin-bottom: 1em; color:#222;">Total Viewers</h2>
+        <div style="font-size: 3em; font-weight: bold; color: #222; background: #f8f8f8; border-radius: 12px; padding: 1em 2em; display:inline-block;"> <span id="total">0</span></div>
+        <div id="last-updated" style="font-size:1em;color:#888;margin-top:0.5em;"></div>
+      </div>
+      <div style="flex:2;">
+        <input type="file" id="csvInput" accept=".csv" style="margin-bottom:1em;" />
+        <div id="csvTable" style="margin-top:1em;"></div>
+      </div>
+    </section>
+    <section style="margin-bottom: 3em;">
+      <h3 style="font-size: 1.3em; font-weight: 600; margin-bottom: 1em; color:#222;">Recent Viewer Screenshots (OCR)</h3>
+      <div id="screenshot-table" style="background:#fafafa; border-radius:12px; padding:1em;"></div>
+    </section>
+    <section style="margin-bottom: 3em;">
+      <h3 style="font-size: 1.3em; font-weight: 600; margin-bottom: 1em; color:#222;">Viewer Details</h3>
+      <div style="background:#fafafa; border-radius:12px; padding:2em;">
+        <table style="width: 100%; border-collapse: collapse; background: #fff;">
+          <thead style="background: #f6f6f6;">
+            <tr>
+              <th style="padding: 0.7em; text-align: left; color: #222;">Name</th>
+              <th style="padding: 0.7em; text-align: left; color: #222;">Headline</th>
+              <th style="padding: 0.7em; text-align: left; color: #222;">Company</th>
+              <th style="padding: 0.7em; text-align: left; color: #222;">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="viewerTable"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:2em;">
+        <canvas id="trendChart" style="width:100%; max-width:600px; height:80px;"></canvas>
+      </div>
+    </section>
+    <section style="margin-top: 3em;">
+      <h3 style="font-size: 1.3em; font-weight: 600; margin-bottom: 1em; color:#222;">Live Logs</h3>
+      <div class="log" id="logs" style="background: #fff; color: #222; border-radius: 12px; padding: 1.5em; font-size: 1em; border:1px solid #eee;"></div>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    async function fetchViewers() {
+      const res = await fetch('/api/viewers');
+      const data = await res.json();
+      // Show total viewers
+      document.getElementById('total').textContent = data.total || 0;
+      // Show last updated
+      let lastUpdated = '';
+      if (data.allViewers && data.allViewers.length) {
+        lastUpdated = data.allViewers[0].timestamp ? new Date(data.allViewers[0].timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '';
+      }
+      document.getElementById('last-updated').textContent = lastUpdated ? `Last updated: ${lastUpdated}` : '';
+      // Show free viewers and all viewers
+      let viewerRows = [];
+      if (data.freeViewers && data.freeViewers.length) {
+        viewerRows = data.freeViewers.map(v =>
+          `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
+        );
+      } else if (data.allViewers && data.allViewers.length) {
+        viewerRows = data.allViewers.map(v =>
+          `<tr><td>${v.name || ''}</td><td>${v.headline || ''}</td><td>${v.company || ''}</td><td>${v.timestamp ? new Date(v.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}</td></tr>`
+        );
+      }
+      document.getElementById('viewerTable').innerHTML = viewerRows.join('');
+    // CSV upload and display
+    document.getElementById('csvInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        const rows = text.split('\n').map(r => r.split(','));
+        let html = '<table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;">';
+        rows.forEach((row, i) => {
+          html += '<tr>' + row.map(cell => `<td style="padding:0.5em;border-bottom:1px solid #eee;color:#222;">${cell}</td>`).join('') + '</tr>';
+        });
+        html += '</table>';
+        document.getElementById('csvTable').innerHTML = html;
+      };
+      reader.readAsText(file);
+    });
+      // Chart
+      if (window.trendChartInstance) window.trendChartInstance.destroy();
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      window.trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.viewers.map(v => v.timestamp.split('T')[0]),
+          datasets: [{
+            label: 'Viewers',
+            data: data.viewers.map((v, i) => i + 1),
+            borderColor: '#4f8cff',
+            backgroundColor: 'rgba(79,140,255,0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { x: { display: true }, y: { display: true } }
+        }
+      });
+      // Screenshot OCR table: left timestamp, right thumbnail, names
+      fetch('/api/screenshot-ocr').then(r => r.json()).then(({ results }) => {
+        let html = '<table style="width:100%;border-collapse:collapse;background:#fff;">';
+        html += '<tr><th style="padding:0.7em;color:#222;">Timestamp</th><th style="padding:0.7em;color:#222;">Screenshot</th><th style="padding:0.7em;color:#222;">Names</th></tr>';
+        results.slice(-6).reverse().forEach(row => {
+          html += `<tr>
+            <td style="padding:0.7em;color:#222;">${row.timestamp}</td>
+            <td style="padding:0.7em;"><img src="/screenshots/${row.file}?t=${Date.now()}" class="screenshot-img" onclick="showScreenshotPopup('/screenshots/${row.file}?t=${Date.now()}')"></td>
+            <td style="padding:0.7em;color:#222;">${row.names.join('<br>')}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('screenshot-table').innerHTML = html;
+      });
+    function showScreenshotPopup(src) {
+      document.getElementById('popup-img').src = src;
+      document.getElementById('screenshot-popup').style.display = 'flex';
+    }
+    function closeScreenshotPopup() {
+      document.getElementById('screenshot-popup').style.display = 'none';
+      document.getElementById('popup-img').src = '';
+    }
+    }
+    async function fetchLogs() {
+      const res = await fetch('/api/logs');
+      const data = await res.json();
+      // Color-coded log rendering
+      document.getElementById('logs').innerHTML = data.logs.map(log => {
+        let color = '#fff';
+        if (log.includes('[INFO]')) color = '#4f8cff';
+        else if (log.includes('[ERROR]')) color = '#ff4f4f';
+        else if (log.includes('[WARN]')) color = '#ffd700';
+        else if (log.includes('[NETWORK]')) color = '#2ecc40';
+        else if (log.includes('[DEBUG]')) color = '#a259ff';
+        else if (log.toLowerCase().includes('connecting')) color = '#ffa500';
+        else if (log.toLowerCase().includes('connected')) color = '#2ecc40';
+        return `<span style="color:${color};display:block;margin-bottom:2px;">${log}</span>`;
+      }).join('');
+    }
+    async function launchScrape() {
+      await fetch('/api/scrape', { method: 'POST' });
+      fetchViewers();
+      fetchLogs();
+    }
+    setInterval(fetchViewers, 5000);
+    setInterval(fetchLogs, 2000);
+    fetchViewers();
+    fetchLogs();
+  </script>
+</body>
+</html>
