@@ -1,0 +1,3167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LinkedIn Profile View Tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: #f8fafc; 
+      min-height: 100vh; 
+      color: #1e293b;
+    }
+    
+    /* Main Content - Full Width */
+    .main-content {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1.5rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .status-indicator {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: #10b981;
+      color: white;
+    }
+    
+    /* Control Panels */
+    .controls-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .control-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .control-panel h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 1rem;
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 1rem;
+      align-items: end;
+      margin-bottom: 1rem;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex: 1;
+    }
+    
+    .control-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .control-input {
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+    }
+    
+    .control-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #3b82f6;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+    
+    /* Overview Cards */
+    .overview-section {
+      margin-bottom: 2.5rem;
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .view-all-btn {
+      color: #64748b;
+      text-decoration: none;
+      font-size: 0.875rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+    }
+    
+    .view-all-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 1.25rem;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    
+    .stat-card.primary {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    
+    .stat-card.secondary {
+      border: 1px solid #e2e8f0;
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      font-weight: 500;
+    }
+    
+    .stat-card.primary .stat-label {
+      color: rgba(255,255,255,0.9);
+    }
+    
+    .stat-card.secondary .stat-label {
+      color: #64748b;
+    }
+    
+    /* Content Grid */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .card-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .card-content {
+      padding: 2rem;
+    }
+    
+    /* Table Styles */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .data-table th {
+      text-align: left;
+      padding: 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .data-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.875rem;
+    }
+    
+    .data-table tr:hover {
+      background: #f8fafc;
+    }
+    
+    /* Calendar Grid */
+    .calendar-container {
+      padding: 1rem;
+    }
+    
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .calendar-nav {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .calendar-nav button {
+      background: none;
+      border: 1px solid #e2e8f0;
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #64748b;
+    }
+    
+    .calendar-nav button:hover {
+      background: #f1f5f9;
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+    
+    .calendar-day-header {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.5rem;
+    }
+    
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    
+    .calendar-day:hover {
+      background: #f1f5f9;
+    }
+    
+    .calendar-day.has-data {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    
+    .calendar-day.today {
+      background: #3b82f6;
+      color: white;
+      font-weight: 600;
+    }
+    
+    .viewer-count {
+      font-size: 0.625rem;
+      margin-top: 0.25rem;
+      opacity: 0.8;
+    }
+    
+    /* Compact Stats */
+    .compact-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .compact-stat {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .compact-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+    
+    .compact-stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    
+    /* Logs - Enhanced Styling */
+    .logs-container {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      border: 1px solid #334155;
+    }
+    
+    .log-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      border-left: 3px solid transparent;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .log-entry:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    
+    .log-entry.info {
+      color: #60a5fa;
+      border-left-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+    
+    .log-entry.success {
+      color: #34d399;
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .log-entry.error {
+      color: #f87171;
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.05);
+    }
+    
+    .log-entry.warning {
+      color: #fbbf24;
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.05);
+    }
+    
+    .log-timestamp {
+      color: #94a3b8;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      opacity: 0.8;
+    }
+    
+    .log-badge {
+      display: inline-block;
+      padding: 0.125rem 0.375rem;
+      border-radius: 12px;
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      white-space: nowrap;
+    }
+    
+    .log-badge-system {
+      background: #1e40af;
+      color: white;
+    }
+    
+    .log-badge-db {
+      background: #7c3aed;
+      color: white;
+    }
+    
+    .log-badge-scraper {
+      background: #059669;
+      color: white;
+    }
+    
+    .log-badge-api {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .log-badge-firebase {
+      background: #ea580c;
+      color: white;
+    }
+    
+    .log-badge-network {
+      background: #0891b2;
+      color: white;
+    }
+    
+    .log-badge-user {
+      background: #7c2d12;
+      color: white;
+    }
+    
+    .log-message {
+      flex: 1;
+      word-break: break-word;
+    }
+    
+    .log-details {
+      width: 100%;
+      margin-top: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      opacity: 0.8;
+      font-style: italic;
+    }
+    
+    /* Bottom Section */
+    .bottom-section {
+      margin-top: 2rem;
+    }
+    
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    /* Screenshot Gallery */
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    
+    .screenshot-item {
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .screenshot-item:hover {
+      transform: translateY(-2px);
+    }
+    
+    .screenshot-item img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+    
+    .screenshot-info {
+      padding: 0.75rem;
+      background: white;
+    }
+    
+    .screenshot-date {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    
+    .screenshot-viewers {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #0f172a;
+      margin-top: 0.25rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls-section {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      }
+      
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Modal/Popup */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .popup-overlay.active {
+      display: flex;
+    }
+    
+    .popup-image {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Content -->
+  <div class="main-content" style="width: 100%; margin-left: 0;">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <h1 class="page-title">LinkedIn Profile Tracker</h1>
+      <div class="user-info">
+        <div class="status-indicator" id="connection-status">Connecting...</div>
+        <span id="last-updated" style="font-size: 0.85rem; color: #64748b;"></span>
+      </div>
+    </div>
+
+    <!-- Navigation Pills -->
+    <div style="display: flex; justify-content: center; gap: 1rem; margin: 1rem 0 2rem 0;">
+      <a href="index.html" style="padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 25px; color: #667eea; text-decoration: none; font-weight: 500; transition: all 0.3s ease;">🏠 Dashboard</a>
+      <a href="analytics.html" style="padding: 0.75rem 1.5rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 25px; color: #667eea; text-decoration: none; font-weight: 500; transition: all 0.3s ease;">📊 Analytics</a>
+    </div>
+
+    <!-- Manual Controls -->
+    <div class="control-panel">
+      <h3 style="margin-bottom: 1rem; color: #0f172a;">Scraping Controls</h3>
+      <div class="control-row">
+        <div class="control-group">
+          <label class="control-label">Frequency (minutes)</label>
+          <input type="number" class="control-input" id="scrape-frequency" value="30" min="1" max="1440">
+        </div>
+        <div class="control-group">
+          <label class="control-label">Random Intervals</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="random-toggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="control-group" style="flex-direction: row; align-items: end; gap: 0.5rem;">
+          <button class="btn btn-primary" onclick="launchScrape()">
+            Start Tracking
+          </button>
+          <button class="btn btn-danger" onclick="stopScrape()">
+            Stop Tracking
+          </button>
+          <button class="btn btn-secondary" onclick="updateSchedule()">
+            Update Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Configuration -->
+    <div class="control-panel" style="margin-top: 1rem;">
+      <h3 style="margin-bottom: 1rem; color: #0f172a;">Schedule Configuration</h3>
+      <div class="control-row">
+        <div class="control-group" style="flex-direction: row; align-items: end; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="updateSchedule()">
+            Update Schedule
+          </button>
+          <button class="btn btn-secondary" onclick="exportCSV()">
+            Export CSV
+          </button>
+          <button class="btn btn-secondary" onclick="handleTestFirestore()">
+            Test DB
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview Section -->
+    <div class="overview-section">
+      <div class="section-header">
+        <h2 class="section-title">Overview</h2>
+        <a href="#" class="view-all-btn">View All</a>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-card primary">
+          <div class="stat-icon">�</div>
+          <div class="stat-value" id="total-viewers">0</div>
+          <div class="stat-label">Total Viewers</div>
+        </div>
+        
+        <div class="stat-card secondary">
+          <div class="stat-icon"></div>
+          <div class="stat-value" id="daily-increase">+0</div>
+          <div class="stat-label">Daily Increase</div>
+        </div>
+        
+        <div class="stat-card secondary">
+          <div class="stat-icon"></div>
+          <div class="stat-value" id="free-viewers">0</div>
+          <div class="stat-label">Free Viewers</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- Recent Viewers -->
+      <div class="card">
+        <div class="card-header">
+          <div class="section-header">
+            <h3 class="card-title">Recent Viewers</h3>
+            <a href="#" class="view-all-btn">View All</a>
+          </div>
+        </div>
+        <div class="card-content">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Status</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="recent-viewers-table">
+              <tr>
+                <td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">Click "Start Tracking" to see viewers</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- View Calendar -->
+      <div class="card">
+        <div class="card-header">
+          <div class="section-header">
+            <h3 class="card-title">View Calendar</h3>
+            <select class="view-all-btn" style="border: 1px solid #e2e8f0; background: white;">
+              <option>Monthly</option>
+              <option>Weekly</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="calendar-container">
+            <div class="calendar-header">
+              <h4 id="current-month">July 2025</h4>
+              <div class="calendar-nav">
+                <button onclick="previousMonth()">‹</button>
+                <button onclick="nextMonth()">›</button>
+              </div>
+            </div>
+            <div class="calendar-grid" id="calendar-grid">
+              <!-- Calendar will be generated here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live System Logs -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header">
+        <h3 class="card-title">Live System Logs</h3>
+      </div>
+      <div class="card-content">
+        <div class="logs-container" id="logs">
+          <div class="log-entry info">System initializing...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screenshots Gallery -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header">
+        <div class="section-header">
+          <h3 class="card-title">Recent Screenshots</h3>
+          <button class="view-all-btn" onclick="fetchScreenshots()">Refresh</button>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="screenshot-grid" id="screenshot-gallery">
+          Loading screenshots...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Increases Section (moved to bottom) -->
+  <div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <h3 class="card-title">View Increases</h3>
+    </div>
+    <div class="card-content">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1.2rem;">
+        <div style="background: #fff; padding: 0.6rem; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.3rem;">Past 1 Hour</div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #4caf50;" id="increase-1h">+0</div>
+        </div>
+        <div style="background: #fff; padding: 0.6rem; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.3rem;">Past 3 Hours</div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #2196f3;" id="increase-3h">+0</div>
+        </div>
+        <div style="background: #fff; padding: 0.6rem; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.3rem;">Past 6 Hours</div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #ff9800;" id="increase-6h">+0</div>
+        </div>
+        <div style="background: #fff; padding: 0.6rem; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.3rem;">Past 12 Hours</div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #e91e63;" id="increase-12h">+0</div>
+        </div>
+        <div style="background: #fff; padding: 0.6rem; border-radius: 6px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <div style="font-size: 0.75rem; color: #666; margin-bottom: 0.3rem;">Past 24 Hours</div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #9c27b0;" id="increase-24h">+0</div>
+        </div>
+      </div>
+      <div id="last-update-time" style="text-align: center; margin-top: 0.8rem; font-size: 0.8rem; color: #888;"></div>
+    </div>
+  </div>
+
+  <!-- Screenshot Popup -->
+  <div class="popup-overlay" id="screenshot-popup" onclick="closeScreenshotPopup()">
+    <img class="popup-image" id="popup-img" src="" alt="Screenshot">
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module">
+// Import Firebase modules
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+import { getFirestore, collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import { getStorage, ref, getDownloadURL, listAll } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js';
+
+// Backend API base URL: use localhost for dev, Render for prod
+const BACKEND_URL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
+
+// Expose BACKEND_URL to global scope for button handlers
+window.BACKEND_URL = BACKEND_URL;
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+  authDomain: "linkrtdb.firebaseapp.com",
+  projectId: "linkrtdb",
+  storageBucket: "linkrtdb.appspot.com",
+  messagingSenderId: "250414480081",
+  appId: "1:250414480081:web:79de7428b63923578063f0",
+  measurementId: "G-EZ2XERVTK7"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// Fetch daily totals and show table
+async function fetchDailyTotals() {
+  try {
+    const q = query(collection(db, "daily_totals"), orderBy("date", "desc"), limit(30));
+    const snapshot = await getDocs(q);
+    let html = '<h4 style="margin-bottom:1em;color:#222;">Daily Totals</h4><table style="width:100%;border-collapse:collapse;background:#fff;margin-top:1em;border-radius:8px;overflow:hidden;">';
+    html += '<thead style="background:#f8f8f8;"><tr><th style="padding:0.8em;text-align:left;">Date</th><th style="padding:0.8em;text-align:left;">Total Viewers</th></tr></thead><tbody>';
+    if (snapshot.empty) {
+      html += '<tr><td colspan="2" style="padding:1em;text-align:center;color:#888;">No daily totals yet. Use Test DB to add sample data.</td></tr>';
+    } else {
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<tr><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.date}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.total}</td></tr>`;
+      });
+    }
+    html += '</tbody></table>';
+    document.getElementById('dailyTotalsTable').innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching daily totals:', error);
+    document.getElementById('dailyTotalsTable').innerHTML = '<p>Error loading daily totals.</p>';
+  }
+}
+
+// Fetch screenshots and display in grid
+async function fetchScreenshots() {
+  try {
+    liveLogger.addLog('FIREBASE', 'Loading screenshots from Firebase Storage...', 'info');
+    
+    const q = query(collection(db, "screenshots"), orderBy("uploadTime", "desc"), limit(12));
+    const snapshot = await getDocs(q);
+    
+    const gallery = document.getElementById('screenshot-gallery');
+    
+    if (snapshot.empty) {
+      gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 2rem;">No screenshots available yet. Run the scraper to capture screenshots.</div>';
+      liveLogger.addLog('FIREBASE', 'No screenshots found in database', 'warning');
+      return;
+    }
+    
+    liveLogger.addLog('FIREBASE', `Found ${snapshot.size} screenshots in database`, 'info');
+    
+    let html = '';
+    let loadedCount = 0;
+    
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      let imageUrl = '';
+      
+      // Try Firebase Storage first, then fallback to local
+      if (data.firebasePath && data.status === 'uploaded') {
+        try {
+          const storageRef = ref(storage, data.firebasePath);
+          imageUrl = await getDownloadURL(storageRef);
+          loadedCount++;
+        } catch (error) {
+          imageUrl = data.localPath || `/screenshots/${data.filename}`;
+          liveLogger.addLog('FIREBASE', `Storage access failed for ${data.filename}, using fallback`, 'warning');
+        }
+      } else {
+        imageUrl = data.localPath || `/screenshots/${data.filename}`;
+      }
+      
+      const displayTime = data.istTimestamp || data.timestamp || 'Unknown time';
+      const viewers = data.totalViewers || 0;
+      
+      html += `
+        <div class="screenshot-item" onclick="openScreenshotPopup('${imageUrl}')">
+          <img src="${imageUrl}" alt="Screenshot" onerror="this.src='/api/placeholder/200/150'">
+          <div class="screenshot-info">
+            <div class="screenshot-date">${displayTime}</div>
+            <div class="screenshot-viewers">${viewers.toLocaleString()} viewers</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    gallery.innerHTML = html;
+    liveLogger.addLog('FIREBASE', `Screenshots gallery loaded successfully`, 'success', {
+      details: `${loadedCount} from Firebase Storage, ${snapshot.size - loadedCount} from local fallback`
+    });
+    
+  } catch (error) {
+    liveLogger.logError('FIREBASE', error);
+    liveLogger.addLog('FIREBASE', 'Failed to load screenshots gallery', 'error');
+    document.getElementById('screenshot-gallery').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 2rem;">Error loading screenshots</div>';
+  }
+}
+
+// Export CSV function
+async function exportCSV() {
+  try {
+    logMessage('info', 'Exporting viewer data to CSV...');
+    
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      logMessage('success', 'CSV exported successfully');
+    } else {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+  } catch (error) {
+    logMessage('error', 'Export failed: ' + error.message);
+  }
+}
+
+// Screenshot popup functions
+function openScreenshotPopup(imageSrc) {
+  document.getElementById('popup-img').src = imageSrc;
+  document.getElementById('screenshot-popup').classList.add('active');
+}
+
+function closeScreenshotPopup() {
+  document.getElementById('screenshot-popup').classList.remove('active');
+}
+
+// Escape key to close popup
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeScreenshotPopup();
+  }
+});
+
+// Initialize on page load with enhanced logging
+window.onload = async () => {
+  // Initialize the enhanced logging system first
+  console.log('🚀 LinkedIn Profile Tracker - Starting initialization...');
+  
+  // Small delay to ensure DOM is fully ready
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  await initializeApp();
+};
+
+// Initialize the application with enhanced logging
+async function initializeApp() {
+  // Start the live logger first
+  liveLogger.init();
+  liveLogger.addLog('SYSTEM', 'Application initialization started', 'info');
+  
+  try {
+    // Test database connection
+    liveLogger.addLog('DB', 'Testing database connectivity...', 'info');
+    const testQuery = query(collection(db, "daily_totals"), limit(1));
+    await getDocs(testQuery);
+    
+    liveLogger.addLog('FIREBASE', 'Firestore connection established successfully', 'success');
+    document.getElementById('connection-status').textContent = 'Connected';
+    document.getElementById('connection-status').style.background = '#10b981';
+    
+    // Initialize all components with logging
+    liveLogger.addLog('SYSTEM', 'Loading application components...', 'info');
+    
+    await fetchTotalViewers();
+    liveLogger.addLog('DB', 'Total viewers data loaded', 'success');
+    
+    await generateCalendar();
+    liveLogger.addLog('SYSTEM', 'Calendar component initialized', 'success');
+    
+    await fetchRecentViewers();
+    liveLogger.addLog('DB', 'Recent viewers data loaded', 'success');
+    
+    await fetchScreenshots();
+    liveLogger.addLog('FIREBASE', 'Screenshots gallery loaded', 'success');
+    
+    liveLogger.addLog('SYSTEM', 'All components loaded successfully', 'success');
+    liveLogger.addLog('SYSTEM', 'System ready for LinkedIn profile tracking', 'success', {
+      details: 'Click "Start Tracking" to begin monitoring'
+    });
+    
+  } catch (error) {
+    liveLogger.logError('SYSTEM', error);
+    liveLogger.addLog('SYSTEM', 'Application initialization failed', 'error', {
+      details: error.message
+    });
+    
+    document.getElementById('connection-status').textContent = 'Disconnected';
+    document.getElementById('connection-status').style.background = '#ef4444';
+  }
+}
+
+// Legacy logMessage function - now uses LiveLogger
+function logMessage(type, message) {
+  if (window.liveLogger) {
+    window.liveLogger.addLog('SYSTEM', message, type);
+  } else {
+    // Fallback for cases where liveLogger isn't initialized yet
+    const logsContainer = document.getElementById('logs');
+    if (logsContainer) {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry ${type}`;
+      logEntry.innerHTML = `[${timestamp}] ${message}`;
+      
+      logsContainer.appendChild(logEntry);
+      logsContainer.scrollTop = logsContainer.scrollHeight;
+      
+      // Keep only last 50 log entries
+      const entries = logsContainer.querySelectorAll('.log-entry');
+      if (entries.length > 50) {
+        entries[0].remove();
+      }
+    }
+  }
+}
+
+// Fetch total viewers from database and update display
+async function fetchTotalViewers() {
+  try {
+    logMessage('info', 'Fetching total viewers from database...');
+    
+    const q = query(collection(db, "daily_totals"), orderBy("timestamp", "desc"), limit(1));
+    const snapshot = await getDocs(q);
+    
+    let total = 0;
+    let dailyIncrease = 0;
+    
+    if (!snapshot.empty) {
+      const latestData = snapshot.docs[0].data();
+      total = latestData.total || 0;
+      
+      // Set last updated time
+      const lastUpdated = latestData.timestamp ? new Date(latestData.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : 'Unknown';
+      document.getElementById('last-updated').textContent = `Last updated: ${lastUpdated}`;
+      
+      // Get yesterday's data for comparison
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayDate = yesterday.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+      
+      const yesterdayQuery = query(
+        collection(db, "daily_totals"), 
+        where("date", "==", yesterdayDate),
+        limit(1)
+      );
+      const yesterdaySnapshot = await getDocs(yesterdayQuery);
+      
+      if (!yesterdaySnapshot.empty) {
+        const yesterdayTotal = yesterdaySnapshot.docs[0].data().total || 0;
+        dailyIncrease = total - yesterdayTotal;
+      }
+      
+      logMessage('success', `Total viewers updated: ${total.toLocaleString()}`);
+    } else {
+      logMessage('warning', 'No viewer data found in database');
+    }
+    
+    // Update display
+    document.getElementById('total-viewers').textContent = total.toLocaleString();
+    document.getElementById('daily-increase').textContent = dailyIncrease >= 0 ? `+${dailyIncrease}` : dailyIncrease.toString();
+    
+    // Update daily increase color
+    const dailyIncreaseEl = document.getElementById('daily-increase');
+    if (dailyIncrease > 0) {
+      dailyIncreaseEl.style.color = '#10b981';
+    } else if (dailyIncrease < 0) {
+      dailyIncreaseEl.style.color = '#ef4444';
+    }
+    
+  } catch (error) {
+    logMessage('error', 'Error fetching total viewers: ' + error.message);
+    document.getElementById('total-viewers').textContent = '0';
+  }
+}
+
+// Fetch recent viewers and populate table
+async function fetchRecentViewers() {
+  try {
+    liveLogger.addLog('DB', 'Fetching recent viewers from Firestore...', 'info');
+    
+    const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(15));
+    const snapshot = await getDocs(q);
+    
+    const tbody = document.getElementById('recent-viewers-table');
+    tbody.innerHTML = '';
+    
+    if (snapshot.empty) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">No recent viewers found. Run the scraper to collect viewer data.</td></tr>';
+      liveLogger.addLog('DB', 'No viewer records found in database', 'warning');
+      return;
+    }
+    
+    let freeViewerCount = 0;
+    let serialNumber = 1;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const row = document.createElement('tr');
+      
+      // Determine if it's a free viewer (has detailed info)
+      const isFreeViewer = data.name && !data.name.includes('Someone at') && !data.name.includes('LinkedIn Member');
+      if (isFreeViewer) freeViewerCount++;
+      
+      // Clean up the name field
+      let displayName = data.name || 'Anonymous Viewer';
+      if (displayName.includes('View ') && displayName.includes("'s profile")) {
+        displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
+      }
+      
+      // Format timestamp
+      let displayTimestamp = data.timestamp || 'Unknown';
+      if (data.timestamp) {
+        try {
+          const date = new Date(data.timestamp);
+          if (!isNaN(date.getTime())) {
+            displayTimestamp = date.toLocaleDateString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (e) {
+          // Keep original timestamp if parsing fails
+        }
+      }
+      
+      row.innerHTML = `
+        <td style="text-align: center; font-weight: 500; color: #64748b;">${serialNumber}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
+              ${displayName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight: 500; font-size: 0.875rem; color: #1e293b;">${displayName}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${data.headline || 'No headline available'}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size: 0.875rem; color: #374151;">${data.company || 'Not specified'}</td>
+        <td>
+          <span style="padding: 0.375rem 0.75rem; background: ${isFreeViewer ? '#dbeafe' : '#f3f4f6'}; color: ${isFreeViewer ? '#1d4ed8' : '#6b7280'}; border-radius: 16px; font-size: 0.75rem; font-weight: 500;">
+            ${isFreeViewer ? '🔓 Free' : '🔒 Premium'}
+          </span>
+        </td>
+        <td style="font-size: 0.75rem; color: #64748b;">${displayTimestamp}</td>
+      `;
+      
+      tbody.appendChild(row);
+      serialNumber++;
+    });
+    
+    // Update free viewers count
+    document.getElementById('free-viewers').textContent = freeViewerCount;
+    
+    liveLogger.addLog('DB', `Recent viewers loaded: ${snapshot.size} records`, 'success', {
+      details: `${freeViewerCount} free viewers, ${snapshot.size - freeViewerCount} premium viewers`
+    });
+    
+  } catch (error) {
+    liveLogger.logError('DB', error);
+    liveLogger.addLog('DB', 'Failed to fetch recent viewers', 'error');
+    
+    const tbody = document.getElementById('recent-viewers-table');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 2rem;">Error loading viewer data. Please try again.</td></tr>';
+  }
+}
+      
+      if (!seenViewers.has(uniqueKey) && cleanName.length > 3) {
+        seenViewers.add(uniqueKey);
+        combinedViewers.push({
+          ...viewer,
+          name: cleanName,
+          timestamp: new Date().toLocaleString('en-IN', { 
+            timeZone: 'Asia/Kolkata',
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          isNew: true // Mark as new data
+        });
+      }
+    });
+    
+    // Add existing viewers (avoiding duplicates)
+    existingViewers.forEach(viewer => {
+      if (!viewer.name) return;
+      
+      let cleanName = viewer.name.trim();
+      if (cleanName.includes('View ') && cleanName.includes("'s profile")) {
+        cleanName = cleanName.replace(/View\s+(.+)'s profile/, '$1').trim();
+      }
+      cleanName = cleanName.replace(/\s+/g, ' ').trim();
+      
+      const uniqueKey = `${cleanName}_${viewer.headline || ''}_${viewer.company || ''}`.toLowerCase();
+      
+      if (!seenViewers.has(uniqueKey) && cleanName.length > 3) {
+        seenViewers.add(uniqueKey);
+        combinedViewers.push({
+          ...viewer,
+          name: cleanName,
+          isNew: false
+        });
+      }
+    });
+    
+    // Limit to 20 most recent viewers
+    const displayViewers = combinedViewers.slice(0, 20);
+    
+    if (displayViewers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">No viewer data available</td></tr>';
+      return;
+    }
+    
+    // Display the combined data
+    let serialNumber = 1;
+    let freeViewerCount = 0;
+    
+    displayViewers.forEach(data => {
+      const row = document.createElement('tr');
+      
+      // Determine if it's a free viewer (has detailed info)
+      const isFreeViewer = data.name && 
+        !data.name.includes('Someone at') && 
+        !data.name.includes('LinkedIn Member') &&
+        !data.name.includes('work at ') &&
+        !data.name.includes('found you through') &&
+        !data.name.includes('has a connection') &&
+        data.name.length > 10;
+      
+      if (isFreeViewer) freeViewerCount++;
+      
+      // Format timestamp
+      let displayTimestamp = data.timestamp || 'Just now';
+      if (data.timestamp && !data.isNew) {
+        try {
+          const date = new Date(data.timestamp);
+          if (!isNaN(date.getTime())) {
+            displayTimestamp = date.toLocaleDateString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (e) {
+          // Keep original timestamp
+        }
+      }
+      
+      // Special styling for new data
+      const newDataStyle = data.isNew ? 'background: linear-gradient(90deg, #f0f9ff 0%, #ffffff 100%); border-left: 3px solid #3b82f6;' : '';
+      
+      row.innerHTML = `
+        <td style="text-align: center; font-weight: 500; color: #64748b;">${serialNumber}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: ${data.isNew ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
+              ${data.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight: 500; font-size: 0.875rem; color: #1e293b;">${data.name}${data.isNew ? ' <span style="color: #3b82f6; font-size: 0.7rem;">●</span>' : ''}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${data.headline || 'No headline available'}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size: 0.875rem; color: #374151;">${data.company || 'Not specified'}</td>
+        <td>
+          <span style="padding: 0.375rem 0.75rem; background: ${isFreeViewer ? '#dbeafe' : '#f3f4f6'}; color: ${isFreeViewer ? '#1d4ed8' : '#6b7280'}; border-radius: 16px; font-size: 0.75rem; font-weight: 500;">
+            ${isFreeViewer ? '🔓 Free' : '🔒 Premium'}
+          </span>
+        </td>
+        <td style="font-size: 0.75rem; color: #64748b;">${displayTimestamp}</td>
+      `;
+      
+      row.style.cssText = newDataStyle;
+      tbody.appendChild(row);
+      serialNumber++;
+    });
+    
+    // Update free viewers count
+    const freeViewersElement = document.getElementById('free-viewers');
+    if (freeViewersElement) {
+      freeViewersElement.textContent = freeViewerCount;
+    }
+    
+    liveLogger.addLog('SYSTEM', `Recent viewers updated: ${displayViewers.length} total, ${freshViewers.length} new`, 'success', {
+      details: `${freeViewerCount} free viewers displayed`
+    });
+    
+  } catch (error) {
+    liveLogger.logError('SYSTEM', error);
+    console.error('Error updating recent viewers:', error);
+  }
+}
+  try {
+    liveLogger.addLog('DB', 'Fetching recent viewers from Firestore...', 'info');
+    
+    const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(15));
+    const snapshot = await getDocs(q);
+    
+    const tbody = document.getElementById('recent-viewers-table');
+    tbody.innerHTML = '';
+    
+    if (snapshot.empty) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">No recent viewers found. Run the scraper to collect viewer data.</td></tr>';
+      liveLogger.addLog('DB', 'No viewer records found in database', 'warning');
+      return;
+    }
+    
+    let freeViewerCount = 0;
+    let serialNumber = 1;
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const row = document.createElement('tr');
+      
+      // Determine if it's a free viewer (has detailed info)
+      const isFreeViewer = data.name && !data.name.includes('Someone at') && !data.name.includes('LinkedIn Member');
+      if (isFreeViewer) freeViewerCount++;
+      
+      // Clean up the name field
+      let displayName = data.name || 'Anonymous Viewer';
+      if (displayName.includes('View ') && displayName.includes("'s profile")) {
+        // Extract name from "View Name's profile" format
+        displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
+      }
+      
+      // Format timestamp
+      let displayTimestamp = data.timestamp || 'Unknown';
+      if (data.timestamp) {
+        try {
+          // Try to format if it's a valid date
+          const date = new Date(data.timestamp);
+          if (!isNaN(date.getTime())) {
+            displayTimestamp = date.toLocaleDateString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (e) {
+          // Keep original timestamp if parsing fails
+        }
+      }
+      
+      row.innerHTML = `
+        <td style="text-align: center; font-weight: 500; color: #64748b;">${serialNumber}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
+              ${displayName.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight: 500; font-size: 0.875rem; color: #1e293b;">${displayName}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${data.headline || 'No headline available'}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size: 0.875rem; color: #374151;">${data.company || 'Not specified'}</td>
+        <td>
+          <span style="padding: 0.375rem 0.75rem; background: ${isFreeViewer ? '#dbeafe' : '#f3f4f6'}; color: ${isFreeViewer ? '#1d4ed8' : '#6b7280'}; border-radius: 16px; font-size: 0.75rem; font-weight: 500;">
+            ${isFreeViewer ? '🔓 Free' : '🔒 Premium'}
+          </span>
+        </td>
+        <td style="font-size: 0.75rem; color: #64748b;">${displayTimestamp}</td>
+      `;
+      
+      tbody.appendChild(row);
+      serialNumber++;
+    });
+    
+    // Update free viewers count
+    document.getElementById('free-viewers').textContent = freeViewerCount;
+    
+    liveLogger.addLog('DB', `Recent viewers loaded: ${snapshot.size} records`, 'success', {
+      details: `${freeViewerCount} free viewers, ${snapshot.size - freeViewerCount} premium viewers`
+    });
+    
+  } catch (error) {
+    liveLogger.logError('DB', error);
+    liveLogger.addLog('DB', 'Failed to fetch recent viewers', 'error');
+    
+    const tbody = document.getElementById('recent-viewers-table');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 2rem;">Error loading viewer data. Please try again.</td></tr>';
+  }
+}
+
+// Update Recent Viewers table with fresh scraped data (immediate display)
+async function updateRecentViewersWithFreshData(freshViewers) {
+  try {
+    const tbody = document.getElementById('recent-viewers-table');
+    if (!tbody) return;
+    
+    // Get existing data from Firestore for duplicate checking
+    let existingViewers = [];
+    try {
+      const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(50));
+      const snapshot = await getDocs(q);
+      snapshot.forEach(doc => {
+        existingViewers.push(doc.data());
+      });
+    } catch (error) {
+      console.log('Could not fetch existing data for duplicate check:', error.message);
+    }
+    
+    // Clear table first
+    tbody.innerHTML = '';
+    
+    // Combine fresh data with existing data and remove duplicates
+    const combinedViewers = [];
+    const seenViewers = new Set();
+    
+    // Process fresh viewers first (they get priority/top positions)
+    freshViewers.forEach(viewer => {
+      if (!viewer.name) return;
+      
+      // Clean up the viewer data
+      let cleanName = viewer.name.trim();
+      if (cleanName.includes('View ') && cleanName.includes("'s profile")) {
+        cleanName = cleanName.replace(/View\s+(.+)'s profile/, '$1').trim();
+      }
+      // Remove extra whitespace and newlines
+      cleanName = cleanName.replace(/\s+/g, ' ').trim();
+      
+      // Create a unique key for duplicate detection
+      const uniqueKey = `${cleanName}_${viewer.headline || ''}_${viewer.company || ''}`.toLowerCase();
+      
+      if (!seenViewers.has(uniqueKey) && cleanName.length > 3) {
+        seenViewers.add(uniqueKey);
+        combinedViewers.push({
+          ...viewer,
+          name: cleanName,
+          timestamp: new Date().toLocaleString('en-IN', { 
+            timeZone: 'Asia/Kolkata',
+            day: '2-digit',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          isNew: true // Mark as new data
+        });
+      }
+    });
+    
+    // Add existing viewers (avoiding duplicates)
+    existingViewers.forEach(viewer => {
+      if (!viewer.name) return;
+      
+      let cleanName = viewer.name.trim();
+      if (cleanName.includes('View ') && cleanName.includes("'s profile")) {
+        cleanName = cleanName.replace(/View\s+(.+)'s profile/, '$1').trim();
+      }
+      cleanName = cleanName.replace(/\s+/g, ' ').trim();
+      
+      const uniqueKey = `${cleanName}_${viewer.headline || ''}_${viewer.company || ''}`.toLowerCase();
+      
+      if (!seenViewers.has(uniqueKey) && cleanName.length > 3) {
+        seenViewers.add(uniqueKey);
+        combinedViewers.push({
+          ...viewer,
+          name: cleanName,
+          isNew: false
+        });
+      }
+    });
+    
+    // Limit to 20 most recent viewers
+    const displayViewers = combinedViewers.slice(0, 20);
+    
+    if (displayViewers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">No viewer data available</td></tr>';
+      return;
+    }
+    
+    // Display the combined data
+    let serialNumber = 1;
+    let freeViewerCount = 0;
+    
+    displayViewers.forEach(data => {
+      const row = document.createElement('tr');
+      
+      // Determine if it's a free viewer (has detailed info)
+      const isFreeViewer = data.name && 
+        !data.name.includes('Someone at') && 
+        !data.name.includes('LinkedIn Member') &&
+        !data.name.includes('work at ') &&
+        !data.name.includes('found you through') &&
+        !data.name.includes('has a connection') &&
+        data.name.length > 10;
+      
+      if (isFreeViewer) freeViewerCount++;
+      
+      // Format timestamp
+      let displayTimestamp = data.timestamp || 'Just now';
+      if (data.timestamp && !data.isNew) {
+        try {
+          const date = new Date(data.timestamp);
+          if (!isNaN(date.getTime())) {
+            displayTimestamp = date.toLocaleDateString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (e) {
+          // Keep original timestamp
+        }
+      }
+      
+      // Special styling for new data
+      const newDataStyle = data.isNew ? 'background: linear-gradient(90deg, #f0f9ff 0%, #ffffff 100%); border-left: 3px solid #3b82f6;' : '';
+      
+      row.innerHTML = `
+        <td style="text-align: center; font-weight: 500; color: #64748b;">${serialNumber}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 36px; height: 36px; background: ${data.isNew ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; font-weight: 600;">
+              ${data.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style="font-weight: 500; font-size: 0.875rem; color: #1e293b;">${data.name}${data.isNew ? ' <span style="color: #3b82f6; font-size: 0.7rem;">●</span>' : ''}</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 2px;">${data.headline || 'No headline available'}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size: 0.875rem; color: #374151;">${data.company || 'Not specified'}</td>
+        <td>
+          <span style="padding: 0.375rem 0.75rem; background: ${isFreeViewer ? '#dbeafe' : '#f3f4f6'}; color: ${isFreeViewer ? '#1d4ed8' : '#6b7280'}; border-radius: 16px; font-size: 0.75rem; font-weight: 500;">
+            ${isFreeViewer ? '🔓 Free' : '🔒 Premium'}
+          </span>
+        </td>
+        <td style="font-size: 0.75rem; color: #64748b;">${displayTimestamp}</td>
+      `;
+      
+      row.style.cssText = newDataStyle;
+      tbody.appendChild(row);
+      serialNumber++;
+    });
+    
+    // Update free viewers count
+    const freeViewersElement = document.getElementById('free-viewers');
+    if (freeViewersElement) {
+      freeViewersElement.textContent = freeViewerCount;
+    }
+    
+    liveLogger.addLog('SYSTEM', `Recent viewers updated: ${displayViewers.length} total, ${freshViewers.length} new`, 'success', {
+      details: `${freeViewerCount} free viewers displayed`
+    });
+    
+  } catch (error) {
+    liveLogger.logError('SYSTEM', error);
+    console.error('Error updating recent viewers:', error);
+  }
+}
+
+// Generate calendar grid for current month
+async function generateCalendar() {
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    
+    // Fetch daily totals for this month
+    const monthStart = `1/${month + 1}/${year}`;
+    const monthEnd = `${daysInMonth}/${month + 1}/${year}`;
+    
+    const q = query(collection(db, "daily_totals"));
+    const snapshot = await getDocs(q);
+    
+    const dailyData = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.date && data.total) {
+        dailyData[data.date] = data.total;
+      }
+    });
+    
+    // Generate calendar HTML
+    const calendarGrid = document.getElementById('calendar-grid');
+    let html = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      html += `<div class="calendar-header">${day}</div>`;
+    });
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startDayOfWeek; i++) {
+      html += '<div class="calendar-day"></div>';
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${day}/${month + 1}/${year}`;
+      const isToday = (day === now.getDate() && month === now.getMonth() && year === now.getFullYear());
+      const hasData = dailyData[dateKey];
+      
+      let classes = 'calendar-day';
+      if (isToday) classes += ' today';
+      if (hasData) classes += ' has-data';
+      
+      html += `
+        <div class="${classes}" onclick="selectCalendarDate('${dateKey}')">
+          <div class="day-number">${day}</div>
+          ${hasData ? `<div class="viewer-count">${hasData}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    calendarGrid.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error generating calendar:', error);
+    document.getElementById('calendar-grid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #f44;">Error loading calendar</div>';
+  }
+}
+
+// Select a date from calendar
+function selectCalendarDate(dateKey) {
+  // Update total viewers display for selected date
+  fetchTotalViewersByDate(dateKey);
+}
+
+// Fetch total viewers for specific date
+async function fetchTotalViewersByDate(dateKey) {
+  try {
+    const q = query(collection(db, "daily_totals"), where("date", "==", dateKey), limit(1));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const data = snapshot.docs[0].data();
+      document.getElementById('total-viewers').textContent = data.total?.toLocaleString() || '0';
+      document.getElementById('last-updated').textContent = `Selected date: ${dateKey} (${data.total || 0} viewers)`;
+    } else {
+      document.getElementById('total-viewers').textContent = '0';
+      document.getElementById('last-updated').textContent = `No data for ${dateKey}`;
+    }
+  } catch (error) {
+    console.error('Error fetching date data:', error);
+  }
+}
+
+// Fetch total by selected date
+async function fetchTotalByDate() {
+  const selectedDate = document.getElementById('dateSelector').value;
+  if (selectedDate) {
+    // Convert YYYY-MM-DD to DD/MM/YYYY format for Firestore
+    const [year, month, day] = selectedDate.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+    await fetchTotalViewers(formattedDate);
+  }
+}
+
+// Calculate view increases for different time periods
+async function fetchViewIncreases() {
+  try {
+    const now = new Date();
+    const periods = [
+      { id: 'increase-1h', hours: 1 },
+      { id: 'increase-3h', hours: 3 },
+      { id: 'increase-6h', hours: 6 },
+      { id: 'increase-12h', hours: 12 },
+      { id: 'increase-24h', hours: 24 }
+    ];
+
+    // Get current total
+    const currentQ = query(collection(db, "daily_totals"), orderBy("timestamp", "desc"), limit(1));
+    const currentSnapshot = await getDocs(currentQ);
+    let currentTotal = 0;
+    if (!currentSnapshot.empty) {
+      currentSnapshot.forEach(doc => { currentTotal = doc.data().total; });
+    }
+
+    for (const period of periods) {
+      try {
+        const pastTime = new Date(now.getTime() - (period.hours * 60 * 60 * 1000));
+        
+        // Get the closest record to the past time
+        const pastQ = query(
+          collection(db, "daily_totals"), 
+          where("timestamp", "<=", pastTime.toISOString()),
+          orderBy("timestamp", "desc"), 
+          limit(1)
+        );
+        const pastSnapshot = await getDocs(pastQ);
+        
+        let pastTotal = 0;
+        if (!pastSnapshot.empty) {
+          pastSnapshot.forEach(doc => { pastTotal = doc.data().total; });
+        }
+        
+        const increase = Math.max(0, currentTotal - pastTotal);
+        const element = document.getElementById(period.id);
+        if (element) {
+          element.textContent = `+${increase}`;
+        }
+      } catch (error) {
+        console.error(`Error calculating ${period.hours}h increase:`, error);
+        const element = document.getElementById(period.id);
+        if (element) {
+          element.textContent = '+0';
+        }
+      }
+    }
+    
+    // Update last update time
+    const lastUpdateElement = document.getElementById('last-update-time');
+    if (lastUpdateElement) {
+      lastUpdateElement.textContent = `Last updated: ${now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}`;
+    }
+  } catch (error) {
+    console.error('Error fetching view increases:', error);
+  }
+}
+
+// Fetch latest total (reset date selector)
+async function fetchLatestTotal() {
+  document.getElementById('dateSelector').value = '';
+  await fetchTotalViewers();
+}
+
+// Enhanced Live System Logs with comprehensive status tracking
+class LiveLogger {
+  constructor() {
+    this.logs = [];
+    this.maxLogs = 100;
+    this.container = null;
+    this.isConnected = false;
+    this.lastHeartbeat = null;
+    this.retryCount = 0;
+    this.maxRetries = 5;
+  }
+
+  init() {
+    this.container = document.getElementById('logs');
+    this.addLog('SYSTEM', 'Live System Logger initialized', 'info');
+    this.startSystemMonitoring();
+    this.startBackendLogFetch();
+  }
+
+  addLog(category, message, type = 'info', metadata = {}) {
+    const timestamp = new Date().toLocaleString('en-IN', { 
+      timeZone: 'Asia/Kolkata',
+      hour12: false,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    const logEntry = {
+      timestamp,
+      category,
+      message,
+      type,
+      metadata,
+      id: Date.now() + Math.random()
+    };
+
+    this.logs.push(logEntry);
+    
+    // Keep only last maxLogs entries
+    if (this.logs.length > this.maxLogs) {
+      this.logs = this.logs.slice(-this.maxLogs);
+    }
+
+    this.renderLogs();
+  }
+
+  renderLogs() {
+    if (!this.container) return;
+
+    const logsHtml = this.logs.map(log => {
+      const typeClass = this.getTypeClass(log.type);
+      const categoryBadge = this.getCategoryBadge(log.category);
+      
+      return `
+        <div class="log-entry ${typeClass}" data-category="${log.category}">
+          <span class="log-timestamp">[${log.timestamp}]</span>
+          ${categoryBadge}
+          <span class="log-message">${log.message}</span>
+          ${log.metadata.details ? `<div class="log-details">${log.metadata.details}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    this.container.innerHTML = logsHtml;
+    this.container.scrollTop = this.container.scrollHeight;
+  }
+
+  getTypeClass(type) {
+    const typeMap = {
+      'info': 'info',
+      'success': 'success',
+      'warning': 'warning',
+      'error': 'error',
+      'debug': 'info'
+    };
+    return typeMap[type] || 'info';
+  }
+
+  getCategoryBadge(category) {
+    const badges = {
+      'SYSTEM': '<span class="log-badge log-badge-system">SYS</span>',
+      'DB': '<span class="log-badge log-badge-db">DB</span>',
+      'SCRAPER': '<span class="log-badge log-badge-scraper">SCR</span>',
+      'API': '<span class="log-badge log-badge-api">API</span>',
+      'FIREBASE': '<span class="log-badge log-badge-firebase">FB</span>',
+      'NETWORK': '<span class="log-badge log-badge-network">NET</span>',
+      'USER': '<span class="log-badge log-badge-user">USR</span>'
+    };
+    return badges[category] || `<span class="log-badge">${category}</span>`;
+  }
+
+  async startSystemMonitoring() {
+    // Monitor system status
+    this.addLog('SYSTEM', 'Starting system monitoring...', 'info');
+    
+    // Check backend connectivity
+    await this.checkBackendConnection();
+    
+    // Check database connectivity
+    await this.checkDatabaseConnection();
+    
+    // Start periodic health checks
+    setInterval(() => this.performHealthCheck(), 30000); // Every 30 seconds
+  }
+
+  async checkBackendConnection() {
+    try {
+      this.addLog('NETWORK', 'Testing backend connection...', 'info');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(`${BACKEND_URL}/api/health`, {
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.json();
+        this.isConnected = true;
+        this.retryCount = 0;
+        this.addLog('NETWORK', `Backend connected successfully (${response.status})`, 'success', {
+          details: `Server: ${data.server || 'Unknown'}, Uptime: ${data.uptime || 'Unknown'}`
+        });
+        
+        // Update connection status in UI
+        document.getElementById('connection-status').textContent = 'Connected';
+        document.getElementById('connection-status').style.background = '#10b981';
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      this.isConnected = false;
+      this.retryCount++;
+      
+      let errorMessage = 'Backend connection failed';
+      if (error.name === 'AbortError') {
+        errorMessage = 'Backend connection timeout (10s)';
+      } else if (error.message) {
+        errorMessage = `Backend error: ${error.message}`;
+      }
+      
+      this.addLog('NETWORK', errorMessage, 'error', {
+        details: `Retry ${this.retryCount}/${this.maxRetries}`
+      });
+      
+      // Update connection status in UI
+      document.getElementById('connection-status').textContent = 'Disconnected';
+      document.getElementById('connection-status').style.background = '#ef4444';
+      
+      // Retry connection if under max retries
+      if (this.retryCount < this.maxRetries) {
+        setTimeout(() => this.checkBackendConnection(), 5000);
+      }
+    }
+  }
+
+  async checkDatabaseConnection() {
+    try {
+      this.addLog('DB', 'Testing Firestore connection...', 'info');
+      
+      // Test with a simple query
+      const testQuery = query(collection(db, "daily_totals"), limit(1));
+      const snapshot = await getDocs(testQuery);
+      
+      this.addLog('FIREBASE', 'Firestore connection successful', 'success', {
+        details: `Collections accessible, Query executed`
+      });
+      
+      // Test Firebase Storage
+      try {
+        const storageRef = ref(storage, '/');
+        await listAll(storageRef);
+        this.addLog('FIREBASE', 'Firebase Storage connection successful', 'success');
+      } catch (storageError) {
+        this.addLog('FIREBASE', 'Firebase Storage connection failed', 'warning', {
+          details: storageError.message
+        });
+      }
+      
+    } catch (error) {
+      this.addLog('DB', 'Database connection failed', 'error', {
+        details: error.message
+      });
+    }
+  }
+
+  async performHealthCheck() {
+    if (!this.isConnected) {
+      await this.checkBackendConnection();
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/status`, {
+        method: 'GET',
+        timeout: 5000
+      });
+      
+      if (response.ok) {
+        const status = await response.json();
+        this.lastHeartbeat = new Date();
+        
+        // Log system status periodically (every 5 minutes)
+        if (this.logs.length === 0 || (Date.now() - this.logs[this.logs.length - 1].timestamp) > 300000) {
+          this.addLog('SYSTEM', 'System health check passed', 'info', {
+            details: `Memory: ${status.memory || 'N/A'}, CPU: ${status.cpu || 'N/A'}`
+          });
+        }
+      }
+    } catch (error) {
+      this.addLog('SYSTEM', 'Health check failed', 'warning');
+      this.isConnected = false;
+    }
+  }
+
+  async startBackendLogFetch() {
+    this.addLog('API', 'Starting backend log sync...', 'info');
+    
+    const fetchBackendLogs = async () => {
+      if (!this.isConnected) return;
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/logs`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.logs && Array.isArray(data.logs) && data.logs.length > 0) {
+          // Process recent backend logs (all logs from backend to match terminal output)
+          const recentLogs = data.logs.slice(0, 30); // Get more logs to match terminal
+          
+          // Clear existing backend logs periodically to prevent duplication
+          if (this.logs.filter(log => log.metadata.source === 'backend').length > 20) {
+            this.logs = this.logs.filter(log => log.metadata.source !== 'backend');
+          }
+          
+          recentLogs.reverse().forEach(logLine => {
+            if (typeof logLine === 'string' && logLine.trim()) {
+              this.parseAndAddBackendLog(logLine);
+            }
+          });
+        }
+      } catch (error) {
+        // Only log fetch errors occasionally to avoid spam
+        if (this.retryCount % 15 === 0) {
+          this.addLog('API', 'Backend log sync failed', 'warning', {
+            details: error.message
+          });
+        }
+        this.retryCount++;
+      }
+    };
+    
+    // Fetch logs immediately and then every 1.5 seconds for real-time updates
+    await fetchBackendLogs();
+    setInterval(fetchBackendLogs, 1500);
+  }
+
+  parseAndAddBackendLog(logLine) {
+    // Parse different types of backend logs
+    let category = 'API';
+    let type = 'info';
+    let message = logLine;
+    
+    // Extract timestamp and clean message
+    const timestampMatch = logLine.match(/^(\d{1,2}:\d{2}:\d{2} [AP]M)/);
+    let cleanMessage = logLine;
+    if (timestampMatch) {
+      cleanMessage = logLine.replace(timestampMatch[0], '').trim();
+    }
+    
+    // Remove log level tags and categorize
+    if (cleanMessage.includes('[INFO]')) {
+      type = 'info';
+      cleanMessage = cleanMessage.replace('[INFO]', '').trim();
+    } else if (cleanMessage.includes('[ERROR]')) {
+      type = 'error';
+      cleanMessage = cleanMessage.replace('[ERROR]', '').trim();
+    } else if (cleanMessage.includes('[WARN]') || cleanMessage.includes('[WARNING]')) {
+      type = 'warning';
+      cleanMessage = cleanMessage.replace(/\[WARN(ING)?\]/, '').trim();
+    } else if (cleanMessage.includes('[DEBUG]')) {
+      type = 'info';
+      cleanMessage = cleanMessage.replace('[DEBUG]', '').trim();
+    }
+    
+    // Advanced categorization by content patterns
+    if (cleanMessage.includes('🚀 Starting scrape') || cleanMessage.includes('📋 Initializing LinkedIn') || cleanMessage.includes('✅ Scrape process completed') || cleanMessage.includes('📊 Results:')) {
+      category = 'SCRAPER';
+      type = 'success';
+    } else if (cleanMessage.includes('🔧 Initializing Puppeteer') || cleanMessage.includes('🍪 Session cookies') || cleanMessage.includes('🌐 Navigating to LinkedIn') || cleanMessage.includes('🤖 Performing human-like') || cleanMessage.includes('� Extracting viewer data')) {
+      category = 'SCRAPER';
+    } else if (cleanMessage.includes('📈 Total Viewers:') || cleanMessage.includes('Free Viewers:')) {
+      category = 'SCRAPER';
+      type = 'success';
+    } else if (cleanMessage.includes('💾 Saving viewer data') || cleanMessage.includes('✅ Saved') || cleanMessage.includes('📊 Saving daily total') || cleanMessage.includes('✅ Daily total')) {
+      category = 'DB';
+      type = 'success';
+    } else if (cleanMessage.includes('Firebase') || cleanMessage.includes('☁️') || cleanMessage.includes('� Screenshot metadata')) {
+      category = 'FIREBASE';
+    } else if (cleanMessage.includes('📸 Taking screenshot') || cleanMessage.includes('📸 Screenshot saved') || cleanMessage.includes('� Screenshot will be served')) {
+      category = 'SYSTEM';
+    } else if (cleanMessage.includes('Server running') || cleanMessage.includes('📅 Scheduled scraping')) {
+      category = 'SYSTEM';
+      type = 'success';
+    } else if (cleanMessage.includes('⏹ Stop') || cleanMessage.includes('✅ Stop command')) {
+      category = 'SYSTEM';
+      type = 'warning';
+    } else if (cleanMessage.includes('❌ Error') || cleanMessage.includes('timeout') || cleanMessage.includes('failed')) {
+      type = 'error';
+      category = 'SCRAPER';
+    }
+    
+    // Use the cleaned message
+    message = cleanMessage;
+    
+    // Skip very short or empty messages
+    if (message.length < 5) return;
+    
+    // Enhanced duplicate detection - check if similar message exists in recent logs
+    const recentLogs = this.logs.slice(-5);
+    const isDuplicate = recentLogs.some(log => {
+      // Check for exact match or very similar content
+      const similarity = this.calculateSimilarity(log.message, message);
+      return similarity > 0.8 && log.category === category;
+    });
+    
+    if (!isDuplicate) {
+      this.addLog(category, message, type, { source: 'backend' });
+    }
+  }
+
+  // Helper function to calculate message similarity
+  calculateSimilarity(str1, str2) {
+    const len1 = str1.length;
+    const len2 = str2.length;
+    const maxLen = Math.max(len1, len2);
+    
+    if (maxLen === 0) return 1;
+    
+    // Simple character-based similarity
+    let matches = 0;
+    const minLen = Math.min(len1, len2);
+    for (let i = 0; i < minLen; i++) {
+      if (str1[i] === str2[i]) matches++;
+    }
+    
+    return matches / maxLen;
+  }
+
+  // Public methods for external use
+  logUserAction(action, details = '') {
+    this.addLog('USER', action, 'info', { details });
+  }
+
+  logScrapingStart() {
+    this.addLog('SCRAPER', 'LinkedIn scraping initiated', 'info', {
+      details: 'Starting profile view extraction process'
+    });
+  }
+
+  logScrapingComplete(results) {
+    this.addLog('SCRAPER', 'LinkedIn scraping completed', 'success', {
+      details: `Total viewers: ${results.totalViewers || 0}, Free viewers: ${results.freeViewers || 0}`
+    });
+  }
+
+  logDatabaseUpdate(collection, count) {
+    this.addLog('DB', `Database updated: ${collection}`, 'success', {
+      details: `${count} records processed`
+    });
+  }
+
+  logError(category, error) {
+    this.addLog(category, `Error: ${error.message}`, 'error', {
+      details: error.stack ? error.stack.split('\n')[0] : ''
+    });
+  }
+}
+
+// Initialize the live logger
+const liveLogger = new LiveLogger();
+
+// Expose logger for external use
+window.liveLogger = liveLogger;
+
+// Legacy function for backward compatibility
+async function fetchLiveLogs() {
+  // This is now handled by the LiveLogger class
+  return;
+}
+
+function startLogRefresh() {
+  liveLogger.init();
+}
+
+// Insert mock viewer data for testing Firestore connection
+async function insertMockViewer() {
+  const viewerCol = collection(db, "viewers");
+  const mockViewer = {
+    name: "Test User",
+    headline: "Testing Headline",
+    company: "Test Company",
+    timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+  };
+  await addDoc(viewerCol, mockViewer);
+}
+
+// Fetch viewer details and show in table
+async function fetchViewerDetails() {
+  try {
+    const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(30));
+    const snapshot = await getDocs(q);
+    let html = "";
+    if (snapshot.empty) {
+      html = `<tr><td colspan="4" style="padding:1em;text-align:center;color:#888;">No viewer data yet. Use Test DB to add sample data or run the scraper.</td></tr>`;
+    } else {
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        html += `<tr><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.name || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.headline || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.company || 'N/A'}</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${d.timestamp || 'N/A'}</td></tr>`;
+      });
+    }
+    // Add test element row for visual confirmation
+    html += `<tr style='background:#ffe;'><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Element</td><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Headline</td><td style="padding:0.8em;border-bottom:1px solid #eee;">Test Company</td><td style="padding:0.8em;border-bottom:1px solid #eee;">${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td></tr>`;
+    document.getElementById('viewerTable').innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching viewer details:', error);
+    document.getElementById('viewerTable').innerHTML = `<tr><td colspan="4" style="padding:1em;text-align:center;color:#f44;">Error loading viewer data: ${error.message}</td></tr>`;
+  }
+}
+
+// Insert mock daily total for testing
+async function insertMockDailyTotal() {
+  try {
+    const dailyCol = collection(db, "daily_totals");
+    const today = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+    const randomTotal = Math.floor(Math.random()*100)+1;
+    await addDoc(dailyCol, { date: today, total: randomTotal });
+    console.log('Mock daily total added successfully');
+  } catch (error) {
+    console.error('Error adding mock daily total:', error);
+  }
+}
+
+// Insert mock viewer data for testing Firestore connection
+async function insertMockViewer() {
+  try {
+    const viewerCol = collection(db, "viewers");
+    const mockViewer = {
+      name: "Test User " + Math.floor(Math.random()*1000),
+      headline: "Testing Headline",
+      company: "Test Company",
+      timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    };
+    await addDoc(viewerCol, mockViewer);
+    console.log('Mock viewer added successfully');
+  } catch (error) {
+    console.error('Error adding mock viewer:', error);
+  }
+}
+
+// Status bar logic (removed duplicate, only in global script)
+
+// Removed duplicate window functions (moved to global scope)
+
+// Fetch and display live logs
+async function fetchLiveLogs() {
+  try {
+    const backendURL = (location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com';
+    const response = await fetch(`${backendURL}/api/logs`);
+    const data = await response.json();
+    const logsDiv = document.getElementById('logs');
+    if (data.logs && data.logs.length > 0) {
+      logsDiv.innerHTML = data.logs.slice(0, 20).join('<br>');
+    } else {
+      logsDiv.innerHTML = 'No logs yet. Click Launch!! to start scraping.';
+    }
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    document.getElementById('logs').innerHTML = 'Error loading logs.';
+  }
+}
+
+// Auto-refresh logs every 2 seconds
+let logInterval;
+function startLogRefresh() {
+  if (logInterval) clearInterval(logInterval);
+  logInterval = setInterval(fetchLiveLogs, 2000);
+}
+
+function stopLogRefresh() {
+  if (logInterval) {
+    clearInterval(logInterval);
+    logInterval = null;
+  }
+}
+
+// Make functions globally accessible for button handlers
+window.fetchTotalViewers = fetchTotalViewers;
+window.fetchRecentViewers = fetchRecentViewers;
+window.updateRecentViewersWithFreshData = updateRecentViewersWithFreshData;
+window.fetchDailyTotals = fetchDailyTotals;
+window.fetchScreenshots = fetchScreenshots;
+window.fetchViewerDetails = fetchViewerDetails;
+window.insertMockViewer = insertMockViewer;
+window.insertMockDailyTotal = insertMockDailyTotal;
+window.fetchLiveLogs = fetchLiveLogs;
+window.startLogRefresh = startLogRefresh;
+window.stopLogRefresh = stopLogRefresh;
+window.fetchViewIncreases = fetchViewIncreases;
+window.fetchTotalByDate = fetchTotalByDate;
+window.fetchLatestTotal = fetchLatestTotal;
+window.openScreenshotPopup = function(url) {
+  document.getElementById('popup-img').src = url;
+  document.getElementById('screenshot-popup').style.display = 'flex';
+};
+
+window.closeScreenshotPopup = function() {
+  document.getElementById('screenshot-popup').style.display = 'none';
+};
+
+// Add missing button handler functions to global scope
+window.launchScrape = async function() {
+  // Ensure liveLogger is available, initialize if needed
+  if (!window.liveLogger && typeof LiveLogger !== 'undefined') {
+    window.liveLogger = new LiveLogger();
+    window.liveLogger.init();
+  }
+  
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('User initiated LinkedIn scraping');
+    window.liveLogger.logScrapingStart();
+  } else {
+    console.log('User initiated LinkedIn scraping');
+  }
+  
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Sending scrape request to backend...', 'info');
+    } else {
+      console.log('Sending scrape request to backend...');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/scrape`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Scrape request successful', 'success');
+    } else {
+      console.log('Scrape request successful');
+    }
+    const result = await response.json();
+    
+    if (window.liveLogger) {
+      window.liveLogger.logScrapingComplete({
+        totalViewers: result.totalViewers,
+        freeViewers: result.freeViewers?.length || 0
+      });
+    } else {
+      console.log('Scraping completed:', result);
+    }
+    
+    // IMMEDIATELY display fresh scraped data in the table
+    if (result.allViewers && result.allViewers.length > 0) {
+      if (window.liveLogger) {
+        window.liveLogger.addLog('SYSTEM', 'Displaying fresh scraped data in Recent Viewers table...', 'info');
+      }
+      await updateRecentViewersWithFreshData(result.allViewers);
+    }
+    
+    // Refresh all data after scraping
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SYSTEM', 'Refreshing dashboard data...', 'info');
+    } else {
+      console.log('Refreshing dashboard data...');
+    }
+    
+    // Refresh all components with data
+    if (window.fetchTotalViewers) await window.fetchTotalViewers();
+    if (window.fetchScreenshots) await window.fetchScreenshots();
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SYSTEM', 'Dashboard data refreshed successfully', 'success');
+    } else {
+      console.log('Dashboard data refreshed successfully');
+    }
+    
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('SCRAPER', error);
+      window.liveLogger.addLog('SCRAPER', 'Scraping process failed', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Scraping error:', error);
+      alert('Scraping failed: ' + error.message);
+    }
+  }
+};
+
+window.stopScrape = async function() {
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('User requested scraper stop');
+  }
+  
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Sending stop request to backend...', 'info');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/stop-scraper`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      // Try alternative endpoint
+      const altResponse = await fetch(`${BACKEND_URL}/api/stop`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!altResponse.ok) {
+        throw new Error(`Stop request failed: ${response.status}`);
+      }
+    }
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SCRAPER', 'Scraper stopped successfully', 'success');
+    } else {
+      alert('Scraper stopped successfully');
+    }
+    
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('SCRAPER', error);
+      window.liveLogger.addLog('SCRAPER', 'Failed to stop scraper', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Stop error:', error);
+      alert('Failed to stop scraper: ' + error.message);
+    }
+  }
+};
+
+window.updateSchedule = function() {
+  const frequency = document.getElementById('scrape-frequency').value;
+  const randomEnabled = document.getElementById('random-toggle').checked;
+  
+  if (!frequency) {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('USER', 'Schedule update failed: No frequency specified', 'warning');
+    } else {
+      alert('Please set frequency');
+    }
+    return;
+  }
+  
+  const randomText = randomEnabled ? ' with random intervals' : '';
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction(`Schedule updated: Every ${frequency} minutes${randomText}`);
+    window.liveLogger.addLog('SYSTEM', `Scraping frequency set to ${frequency} minutes${randomText}`, 'success');
+  } else {
+    alert(`Schedule updated: Every ${frequency} minutes${randomText}`);
+  }
+};
+
+window.exportCSV = async function() {
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.logUserAction('CSV export requested');
+      window.liveLogger.addLog('API', 'Requesting data export from backend...', 'info');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      if (window.liveLogger) {
+        window.liveLogger.addLog('SYSTEM', 'CSV file downloaded successfully', 'success', {
+          details: `File: linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`
+        });
+      } else {
+        alert('CSV exported successfully');
+      }
+    } else {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('API', error);
+      window.liveLogger.addLog('SYSTEM', 'CSV export failed', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Export error:', error);
+      alert('CSV export failed: ' + error.message);
+    }
+  }
+};
+
+window.handleTestFirestore = function() {
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('Database connection test initiated');
+  }
+  
+  if (window.moduleTestFirestore && typeof window.moduleTestFirestore === 'function') {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('DB', 'Running Firestore connection test...', 'info');
+    }
+    window.moduleTestFirestore();
+  } else {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('DB', 'Test function not available', 'error');
+    } else {
+      alert('Test function not available');
+    }
+    console.error('moduleTestFirestore function not available');
+  }
+};
+
+// Add calendar navigation functions
+window.previousMonth = function() {
+  // Implementation will be in the second script tag
+  if (typeof previousMonth === 'function') {
+    previousMonth();
+  }
+};
+
+window.nextMonth = function() {
+  // Implementation will be in the second script tag  
+  if (typeof nextMonth === 'function') {
+    nextMonth();
+  }
+};
+
+window.generateCalendar = function() {
+  // Implementation will be in the second script tag
+  if (typeof generateCalendar === 'function') {
+    generateCalendar();
+  }
+};
+
+window.selectCalendarDate = function(dateKey, viewers) {
+  if (window.liveLogger) {
+    window.liveLogger.addLog('USER', `Selected calendar date: ${dateKey}`, 'info', {
+      details: `${viewers || 0} viewers on this date`
+    });
+  }
+  // Implementation will be in the second script tag
+  if (typeof selectCalendarDate === 'function') {
+    selectCalendarDate(dateKey, viewers);
+  }
+};
+
+// TEST: Insert mock data to check Firestore connection
+window.moduleTestFirestore = async function() {
+  try {
+    document.getElementById('status-bar').textContent = 'Testing DB...';
+    document.getElementById('status-bar').style.background = '#ff9800';
+    
+    await insertMockViewer();
+    await insertMockDailyTotal();
+    
+    // Refresh all data
+    await fetchViewerDetails();
+    await fetchTotalViewers();
+    await fetchDailyTotals();
+    await fetchScreenshots();
+    await fetchViewIncreases();
+    
+    document.getElementById('status-bar').textContent = 'DB Test Complete';
+    document.getElementById('status-bar').style.background = '#4caf50';
+    
+    setTimeout(() => {
+      document.getElementById('status-bar').textContent = 'Idle';
+      document.getElementById('status-bar').style.background = '#4f8cff';
+    }, 3000);
+  } catch (error) {
+    console.error('Test failed:', error);
+    document.getElementById('status-bar').textContent = 'DB Test Failed';
+    document.getElementById('status-bar').style.background = '#ff4f4f';
+  }
+};
+
+// Initial load
+fetchTotalViewers();
+fetchRecentViewers();
+fetchDailyTotals();
+fetchScreenshots();
+fetchViewerDetails();
+fetchLiveLogs();
+fetchViewIncreases();
+startLogRefresh();
+
+// Set up auto-refresh for view increases every 5 minutes
+setInterval(fetchViewIncreases, 5 * 60 * 1000);
+  </script>
+  
+  <!-- Global button handler functions -->
+  <script>
+// Global button handler functions for onclick events
+async function launchScrape() {
+  // Ensure liveLogger is available, initialize if needed
+  if (!window.liveLogger && typeof LiveLogger !== 'undefined') {
+    window.liveLogger = new LiveLogger();
+    window.liveLogger.init();
+  }
+  
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('User initiated LinkedIn scraping');
+    window.liveLogger.logScrapingStart();
+  } else {
+    console.log('User initiated LinkedIn scraping');
+  }
+  
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Sending scrape request to backend...', 'info');
+    } else {
+      console.log('Sending scrape request to backend...');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/scrape`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Scrape request successful', 'success');
+    } else {
+      console.log('Scrape request successful');
+    }
+    const result = await response.json();
+    
+    if (window.liveLogger) {
+      window.liveLogger.logScrapingComplete({
+        totalViewers: result.totalViewers,
+        freeViewers: result.freeViewers?.length || 0
+      });
+    } else {
+      console.log('Scraping completed:', result);
+    }
+    
+    // IMMEDIATELY display fresh scraped data in the table
+    if (result.allViewers && result.allViewers.length > 0) {
+      if (window.liveLogger) {
+        window.liveLogger.addLog('SYSTEM', 'Displaying fresh scraped data in Recent Viewers table...', 'info');
+      }
+      await updateRecentViewersWithFreshData(result.allViewers);
+    }
+    
+    // Refresh all data after scraping
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SYSTEM', 'Refreshing dashboard data...', 'info');
+    } else {
+      console.log('Refreshing dashboard data...');
+    }
+    
+    // Call the module functions if they exist
+    if (window.fetchTotalViewers) await window.fetchTotalViewers();
+    if (window.fetchScreenshots) await window.fetchScreenshots();
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SYSTEM', 'Dashboard data refreshed successfully', 'success');
+    } else {
+      console.log('Dashboard data refreshed successfully');
+    }
+    
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('SCRAPER', error);
+      window.liveLogger.addLog('SCRAPER', 'Scraping process failed', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Scraping error:', error);
+      alert('Scraping failed: ' + error.message);
+    }
+  }
+}
+
+async function stopScrape() {
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('User requested scraper stop');
+  } else {
+    console.log('User requested scraper stop');
+  }
+  
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('API', 'Sending stop request to backend...', 'info');
+    } else {
+      console.log('Sending stop request to backend...');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/stop-scraper`, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      // Try alternative endpoint
+      const altResponse = await fetch(`${BACKEND_URL}/api/stop`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!altResponse.ok) {
+        throw new Error(`Stop request failed: ${response.status}`);
+      }
+    }
+    
+    if (window.liveLogger) {
+      window.liveLogger.addLog('SCRAPER', 'Scraper stopped successfully', 'success');
+    } else {
+      console.log('Scraper stopped successfully');
+      alert('Scraper stopped successfully');
+    }
+    
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('SCRAPER', error);
+      window.liveLogger.addLog('SCRAPER', 'Failed to stop scraper', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Stop error:', error);
+      alert('Failed to stop scraper: ' + error.message);
+    }
+  }
+}
+
+function updateSchedule() {
+  const frequency = document.getElementById('scrape-frequency').value;
+  const randomEnabled = document.getElementById('random-toggle').checked;
+  
+  if (!frequency) {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('USER', 'Schedule update failed: No frequency specified', 'warning');
+    } else {
+      alert('Please set frequency');
+    }
+    return;
+  }
+  
+  const randomText = randomEnabled ? ' with random intervals' : '';
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction(`Schedule updated: Every ${frequency} minutes${randomText}`);
+    window.liveLogger.addLog('SYSTEM', `Scraping frequency set to ${frequency} minutes${randomText}`, 'success');
+  } else {
+    console.log(`Schedule updated: Every ${frequency} minutes${randomText}`);
+    alert(`Schedule updated: Every ${frequency} minutes${randomText}`);
+  }
+}
+
+async function exportCSV() {
+  try {
+    if (window.liveLogger) {
+      window.liveLogger.logUserAction('CSV export requested');
+      window.liveLogger.addLog('API', 'Requesting data export from backend...', 'info');
+    } else {
+      console.log('CSV export requested');
+    }
+    
+    const BACKEND_URL = window.BACKEND_URL || ((location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://link-q2qi.onrender.com');
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      if (window.liveLogger) {
+        window.liveLogger.addLog('SYSTEM', 'CSV file downloaded successfully', 'success', {
+          details: `File: linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`
+        });
+      } else {
+        console.log('CSV exported successfully');
+        alert('CSV exported successfully');
+      }
+    } else {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+  } catch (error) {
+    if (window.liveLogger) {
+      window.liveLogger.logError('API', error);
+      window.liveLogger.addLog('SYSTEM', 'CSV export failed', 'error', {
+        details: error.message
+      });
+    } else {
+      console.error('Export error:', error);
+      alert('CSV export failed: ' + error.message);
+    }
+  }
+}
+
+function handleTestFirestore() {
+  if (window.liveLogger) {
+    window.liveLogger.logUserAction('Database connection test initiated');
+  } else {
+    console.log('Database connection test initiated');
+  }
+  
+  if (window.moduleTestFirestore && typeof window.moduleTestFirestore === 'function') {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('DB', 'Running Firestore connection test...', 'info');
+    } else {
+      console.log('Running Firestore connection test...');
+    }
+    window.moduleTestFirestore();
+  } else {
+    if (window.liveLogger) {
+      window.liveLogger.addLog('DB', 'Test function not available', 'error');
+    } else {
+      console.log('Test function not available');
+      alert('Test function not available');
+    }
+    console.error('moduleTestFirestore function not available');
+  }
+}
+
+// Calendar navigation functions
+function previousMonth() {
+  if (window.liveLogger) {
+    window.liveLogger.addLog('USER', 'Calendar: Previous month selected', 'info');
+  }
+  // Will be implemented by the second script
+  console.log('Previous month clicked');
+}
+
+function nextMonth() {
+  if (window.liveLogger) {
+    window.liveLogger.addLog('USER', 'Calendar: Next month selected', 'info');
+  }
+  // Will be implemented by the second script  
+  console.log('Next month clicked');
+}
+
+function selectCalendarDate(dateKey, viewers) {
+  if (window.liveLogger) {
+    window.liveLogger.addLog('USER', `Selected calendar date: ${dateKey}`, 'info', {
+      details: `${viewers || 0} viewers on this date`
+    });
+  }
+  console.log(`Selected date: ${dateKey}, viewers: ${viewers || 0}`);
+}
+
+// Screenshot functions
+function openScreenshotPopup(url) {
+  document.getElementById('popup-img').src = url;
+  document.getElementById('screenshot-popup').style.display = 'flex';
+}
+
+function closeScreenshotPopup() {
+  document.getElementById('screenshot-popup').style.display = 'none';
+}
+
+// Refresh screenshots function
+function fetchScreenshots() {
+  if (window.fetchScreenshots) {
+    window.fetchScreenshots();
+  } else {
+    console.log('fetchScreenshots function not available yet');
+  }
+}
+
+console.log('✅ Global button handlers loaded successfully');
+
+// Verify functions are accessible
+if (typeof launchScrape === 'function') {
+  console.log('✅ launchScrape function is accessible');
+} else {
+  console.error('❌ launchScrape function is NOT accessible');
+}
+
+if (typeof stopScrape === 'function') {
+  console.log('✅ stopScrape function is accessible');
+} else {
+  console.error('❌ stopScrape function is NOT accessible');
+}
+  </script>
+  <script>
+function setStatusBar(status) {
+  const bar = document.getElementById('status-bar');
+  bar.textContent = status;
+  bar.style.background = status === 'Scraping...' ? '#ff9800' : (status === 'Stopped' ? '#ff4f4f' : '#4f8cff');
+}
+
+// Update scraping schedule
+function updateSchedule() {
+  const frequency = document.getElementById('scrape-frequency').value;
+  const randomEnabled = document.getElementById('random-toggle').checked;
+  
+  if (!frequency) {
+    liveLogger.addLog('USER', 'Schedule update failed: No frequency specified', 'warning');
+    return;
+  }
+  
+  const randomText = randomEnabled ? ' with random intervals' : '';
+  liveLogger.logUserAction(`Schedule updated: Every ${frequency} minutes${randomText}`);
+  liveLogger.addLog('SYSTEM', `Scraping frequency set to ${frequency} minutes${randomText}`, 'success');
+}
+
+// Export CSV function with enhanced logging
+async function exportCSV() {
+  try {
+    liveLogger.logUserAction('CSV export requested');
+    liveLogger.addLog('API', 'Requesting data export from backend...', 'info');
+    
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      liveLogger.addLog('SYSTEM', 'CSV file downloaded successfully', 'success', {
+        details: `File: linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`
+      });
+    } else {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+  } catch (error) {
+    liveLogger.logError('API', error);
+    liveLogger.addLog('SYSTEM', 'CSV export failed', 'error', {
+      details: error.message
+    });
+  }
+}
+
+// Test Firestore connection with enhanced logging
+function handleTestFirestore() {
+  liveLogger.logUserAction('Database connection test initiated');
+  
+  if (window.moduleTestFirestore && typeof window.moduleTestFirestore === 'function') {
+    liveLogger.addLog('DB', 'Running Firestore connection test...', 'info');
+    window.moduleTestFirestore();
+  } else {
+    liveLogger.addLog('DB', 'Test function not available', 'error');
+    console.error('moduleTestFirestore function not available');
+  }
+}
+
+// Enhanced calendar generation
+async function generateCalendar() {
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    
+    // Update month display
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    document.getElementById('current-month').textContent = `${monthNames[month]} ${year}`;
+    
+    // Get calendar data
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    // Fetch daily totals for this month
+    const q = query(collection(db, "daily_totals"));
+    const snapshot = await getDocs(q);
+    
+    const dailyData = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.date && data.total) {
+        dailyData[data.date] = data.total;
+      }
+    });
+    
+    // Generate calendar HTML
+    const calendarGrid = document.getElementById('calendar-grid');
+    let html = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+      html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startDayOfWeek; i++) {
+      html += '<div class="calendar-day"></div>';
+    }
+    
+    // Add days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${day}/${month + 1}/${year}`;
+      const isToday = (day === now.getDate() && month === now.getMonth() && year === now.getFullYear());
+      const hasData = dailyData[dateKey];
+      
+      let classes = 'calendar-day';
+      if (isToday) classes += ' today';
+      if (hasData) classes += ' has-data';
+      
+      html += `
+        <div class="${classes}" onclick="selectCalendarDate('${dateKey}', ${hasData || 0})">
+          <div>${day}</div>
+          ${hasData ? `<div class="viewer-count">${hasData}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    calendarGrid.innerHTML = html;
+    
+  } catch (error) {
+    logMessage('error', 'Error generating calendar: ' + error.message);
+  }
+}
+
+// Select calendar date
+function selectCalendarDate(dateKey, viewers) {
+  logMessage('info', `📅 Selected ${dateKey}: ${viewers} viewers`);
+  // You could show more details about the selected date here
+}
+
+// Calendar navigation
+let currentCalendarDate = new Date();
+
+function previousMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+  generateCalendar();
+}
+
+function nextMonth() {
+  currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+  generateCalendar();
+}
+// Export CSV function
+async function exportCSV() {
+  try {
+    document.getElementById('status').textContent = '📊 Exporting data...';
+    const response = await fetch(`${BACKEND_URL}/api/export-csv`);
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkedin-viewers-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      document.getElementById('status').textContent = '✅ CSV exported successfully';
+      setTimeout(() => {
+        document.getElementById('status').textContent = '🔄 Ready to track';
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    document.getElementById('status').textContent = '❌ Export failed';
+  }
+}
+
+// Close screenshot popup
+function closeScreenshotPopup() {
+  document.getElementById('screenshot-popup').style.display = 'none';
+}
+
+// Open screenshot popup
+function openScreenshotPopup(imageSrc) {
+  document.getElementById('popup-img').src = imageSrc;
+  document.getElementById('screenshot-popup').style.display = 'flex';
+}
+
+// Test Firestore connection
+function handleTestFirestore() {
+  if (window.moduleTestFirestore && typeof window.moduleTestFirestore === 'function') {
+    window.moduleTestFirestore();
+  } else {
+    console.error('moduleTestFirestore function not available');
+  }
+}
+  </script>
+</body>
+</html>
