@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Firebase Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+        .step { margin: 10px 0; padding: 10px; border-left: 3px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Complete Firebase Debug Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, doc, getDoc } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+            authDomain: "linkrtdb.firebaseapp.com",
+            projectId: "linkrtdb",
+            storageBucket: "linkrtdb.firebasestorage.app",
+            messagingSenderId: "250414480081",
+            appId: "1:250414480081:web:79de7428b63923578063f0",
+            measurementId: "G-EZ2XERVTK7"
+        };
+
+        const resultsDiv = document.getElementById('results');
+
+        function addStep(title, content, type = 'info') {
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'info'));
+            resultsDiv.innerHTML += `
+                <div class="step">
+                    <h3 class="${className}">${title}</h3>
+                    <pre>${content}</pre>
+                </div>
+            `;
+        }
+
+        async function runCompleteTest() {
+            try {
+                // Step 1: Initialize Firebase
+                addStep('🔥 Step 1: Firebase Initialization', 'Initializing Firebase app...', 'info');
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                addStep('✅ Firebase Init Success', `App initialized successfully
+Project ID: ${firebaseConfig.projectId}
+Auth Domain: ${firebaseConfig.authDomain}`, 'success');
+
+                // Step 2: Test basic connection
+                addStep('🔗 Step 2: Testing Basic Connection', 'Testing basic Firestore connection...', 'info');
+                
+                // Try to access a non-existent document to test permissions
+                try {
+                    const testDoc = doc(db, 'test', 'test');
+                    await getDoc(testDoc);
+                    addStep('✅ Basic Connection Success', 'Firestore connection is working', 'success');
+                } catch (testError) {
+                    if (testError.code === 'permission-denied') {
+                        addStep('❌ Permission Denied', `Basic test failed: ${testError.message}
+This means your security rules are blocking access.`, 'error');
+                        return;
+                    } else {
+                        addStep('✅ Connection OK', 'Basic connection works (expected error for non-existent doc)', 'success');
+                    }
+                }
+
+                // Step 3: Test each collection
+                const collections = ['viewers', 'daily_totals', 'screenshots'];
+                
+                for (const collectionName of collections) {
+                    try {
+                        addStep(`📊 Step 3.${collections.indexOf(collectionName) + 1}: Testing ${collectionName}`, `Attempting to read ${collectionName} collection...`, 'info');
+                        
+                        const collectionRef = collection(db, collectionName);
+                        const snapshot = await getDocs(collectionRef);
+                        
+                        if (snapshot.empty) {
+                            addStep(`⚠️ ${collectionName} Empty`, `Collection exists but contains no documents
+Size: ${snapshot.size}`, 'warning');
+                        } else {
+                            let sampleData = '';
+                            let count = 0;
+                            snapshot.forEach(doc => {
+                                if (count < 2) {
+                                    const data = doc.data();
+                                    sampleData += `Document ID: ${doc.id}
+Fields: ${Object.keys(data).join(', ')}
+Sample: ${JSON.stringify(data, null, 2).substring(0, 200)}...
+
+`;
+                                    count++;
+                                }
+                            });
+                            
+                            addStep(`✅ ${collectionName} Success`, `Found ${snapshot.size} documents
+
+${sampleData}`, 'success');
+                        }
+                        
+                    } catch (error) {
+                        let errorDetails = `Error Code: ${error.code}
+Error Message: ${error.message}`;
+                        
+                        if (error.code === 'permission-denied') {
+                            errorDetails += `
+
+🚨 PERMISSION DENIED - Your Firebase security rules are blocking access to ${collectionName}.
+
+Required fix: Update Firestore security rules to allow read access.`;
+                        }
+                        
+                        addStep(`❌ ${collectionName} Failed`, errorDetails, 'error');
+                    }
+                }
+
+                // Step 4: Summary
+                addStep('📋 Test Summary', `Test completed at ${new Date().toLocaleTimeString()}
+Check results above for specific issues.`, 'info');
+
+            } catch (error) {
+                addStep('❌ Critical Error', `Failed to initialize Firebase: ${error.message}
+Full error: ${error.stack}`, 'error');
+            }
+        }
+
+        // Run test when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runCompleteTest, 1000);
+        });
+    </script>
+</body>
+</html>

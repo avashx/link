@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Webapp Data Fetch</title>
+</head>
+<body>
+    <h2>Testing Recent Viewers Data Fetch</h2>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, collection, query, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+            authDomain: "linkrtdb.firebaseapp.com",
+            projectId: "linkrtdb",
+            storageBucket: "linkrtdb.appspot.com",
+            messagingSenderId: "250414480081",
+            appId: "1:250414480081:web:79de7428b63923578063f0",
+            measurementId: "G-EZ2XERVTK7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function testFetchViewers() {
+            try {
+                console.log('Testing viewer data fetch...');
+                const q = query(collection(db, "viewers"), orderBy("timestamp", "desc"), limit(5));
+                const snapshot = await getDocs(q);
+                
+                const results = document.getElementById('results');
+                let html = '<h3>Recent Viewers Test Results:</h3>';
+                
+                if (snapshot.empty) {
+                    html += '<p>No viewers found in database.</p>';
+                } else {
+                    html += `<p>Found ${snapshot.size} viewer records:</p><ul>`;
+                    
+                    let serialNumber = 1;
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        let displayName = data.name || 'Anonymous Viewer';
+                        if (displayName.includes('View ') && displayName.includes("'s profile")) {
+                            displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
+                        }
+                        
+                        html += `
+                            <li>
+                                <strong>#${serialNumber}:</strong> ${displayName}<br>
+                                <em>Company:</em> ${data.company || 'Not specified'}<br>
+                                <em>Headline:</em> ${data.headline || 'No headline'}<br>
+                                <em>Timestamp:</em> ${data.timestamp || 'Unknown'}<br><br>
+                            </li>
+                        `;
+                        serialNumber++;
+                    });
+                    html += '</ul>';
+                }
+                
+                results.innerHTML = html;
+                console.log('Test completed successfully');
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                document.getElementById('results').innerHTML = `
+                    <h3>Test Failed:</h3>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        }
+
+        // Run test on page load
+        testFetchViewers();
+    </script>
+</body>
+</html>

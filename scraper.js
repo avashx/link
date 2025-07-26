@@ -10,12 +10,14 @@ if (!admin.apps.length) {
   const serviceAccount = require('./serviceAccountKey.json');
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: 'linkrtdb.appspot.com'
+    // Use the correct storage bucket for linkrtdb project
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'linkrtdb.firebasestorage.app'
   });
 }
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket('linkrtdb.appspot.com');
+// Use the default bucket - Firebase will handle the correct bucket name
+const bucket = admin.storage().bucket();
 
 puppeteer.use(StealthPlugin());
 
@@ -168,30 +170,71 @@ async function scrapeProfileViews(log) {
     log('INFO', `📸 Screenshot saved to public directory: ${screenshotName}`);
 
     // Upload screenshot to Firebase Storage (with fallback)
-    log('INFO', '☁️ Attempting to upload screenshot to Firebase Storage...');
+    const enableFirebaseStorage = process.env.ENABLE_FIREBASE_STORAGE !== 'false';
+    
+    if (!enableFirebaseStorage) {
+      log('INFO', '📋 Firebase Storage upload disabled via environment variable');
+    } else {
+      log('INFO', '☁️ Attempting to upload screenshot to Firebase Storage...');
+    }
+    
     let firebaseUploaded = false;
-    try {
-      // Read the screenshot file
-      const screenshotBuffer = fs.readFileSync(publicScreenshotPath);
-      
-      // Try to upload to Firebase Storage
-      const file = bucket.file(`screenshots/${screenshotName}`);
-      await file.save(screenshotBuffer, {
-        metadata: {
-          contentType: 'image/png',
+    
+    if (enableFirebaseStorage) {
+      try {
+        // Check if Firebase Storage is properly configured
+        const bucketName = bucket.name;
+        log('INFO', `📦 Using Firebase Storage bucket: ${bucketName}`);
+        
+        // Read the screenshot file
+        const screenshotBuffer = fs.readFileSync(publicScreenshotPath);
+        
+        // Try to upload to Firebase Storage with timeout
+        const file = bucket.file(`screenshots/${screenshotName}`);
+        const uploadPromise = file.save(screenshotBuffer, {
           metadata: {
-            timestamp: istTime,
-            totalViewers: result.totalViewers.toString(),
-            uploadTime: new Date().toISOString()
+            contentType: 'image/png',
+            metadata: {
+              timestamp: istTime,
+              totalViewers: result.totalViewers.toString(),
+              uploadTime: new Date().toISOString()
+            }
           }
+        });
+
+        // Add timeout to prevent hanging
+        await Promise.race([
+          uploadPromise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+          )
+        ]);
+        
+        firebaseUploaded = true;
+        log('INFO', '✅ Screenshot uploaded to Firebase Storage successfully');
+      } catch (uploadError) {
+        // Log the full error details for debugging
+        if (uploadError.details) {
+          log('ERROR', `⚠️ Firebase Storage upload failed: ${JSON.stringify(uploadError.details)}`);
+        } else if (uploadError.message) {
+          log('ERROR', `⚠️ Firebase Storage upload failed: ${uploadError.message}`);
+        } else {
+          log('ERROR', '⚠️ Firebase Storage upload failed: Unknown error');
         }
-      });
-      
-      firebaseUploaded = true;
-      log('INFO', '✅ Screenshot uploaded to Firebase Storage successfully');
-    } catch (uploadError) {
-      log('ERROR', `⚠️ Firebase Storage upload failed: ${uploadError.message}`);
-      log('INFO', '💾 Screenshot will be served from local public directory instead');
+        
+        // Check if it's a bucket configuration issue
+        if (uploadError.message && uploadError.message.includes('bucket does not exist')) {
+          log('ERROR', '❌ Firebase Storage bucket not found. Please ensure Firebase Storage is enabled in your project.');
+          log('INFO', '💡 Tip: Go to Firebase Console > Storage and initialize Cloud Storage');
+          log('INFO', '💡 Or set ENABLE_FIREBASE_STORAGE=false in .env to disable uploads');
+        }
+        
+        log('INFO', '💾 Screenshot will be served from local public directory instead');
+      }
+    }
+    
+    if (!enableFirebaseStorage) {
+      log('INFO', '💾 Screenshot will be served from local public directory');
     }
     
     // Save screenshot metadata to Firestore regardless of upload status
@@ -218,8 +261,18 @@ async function scrapeProfileViews(log) {
     return result;
   } catch (error) {
     log('ERROR', `❌ Error in scrapeProfileViews: ${error.message}`);
-    await browser.close();
-    return { totalViewers: 0, freeViewers: [], allViewers: [] };
+    
+    // Ensure browser is closed even on error
+    try {
+      if (browser) {
+        await browser.close();
+      }
+    } catch (closeError) {
+      log('ERROR', `❌ Error closing browser: ${closeError.message}`);
+    }
+    
+    // Return default structure instead of throwing to prevent stack overflow
+    return { totalViewers: 0, freeViewers: [], allViewers: [], error: error.message };
   }
 }
 

@@ -90,13 +90,51 @@ app.get('/api/logs', (req, res) => {
   res.json({ logs });
 });
 
+// Add health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    server: 'LinkedIn Profile Tracker',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    timestamp: new Date().toISOString(),
+    scrapingActive: !!scrapingProcess
+  });
+});
+
+// Add status endpoint
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'running',
+    scrapingActive: !!scrapingProcess,
+    scheduledScraping: !!cronTask,
+    lastLogCount: logs.length,
+    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+    uptime: Math.round(process.uptime()) + 's'
+  });
+});
+
 app.post('/api/scrape', async (req, res) => {
   try {
+    // Prevent multiple concurrent scrapes
+    if (scrapingProcess) {
+      log('WARN', '⚠️ Scraping already in progress, rejecting new request');
+      return res.status(409).json({ 
+        status: 'error', 
+        message: 'Scraping already in progress' 
+      });
+    }
+    
     log('INFO', '🚀 Starting scrape process (manual trigger)');
     log('INFO', '📋 Initializing LinkedIn scraper...');
     
-    // Store the scraping process
-    scrapingProcess = scrapeProfileViews(log);
+    // Store the scraping process with timeout
+    const scrapePromise = scrapeProfileViews(log);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Scraping timeout after 5 minutes')), 5 * 60 * 1000)
+    );
+    
+    scrapingProcess = Promise.race([scrapePromise, timeoutPromise]);
     const result = await scrapingProcess;
     scrapingProcess = null;
     
@@ -183,5 +221,16 @@ function startScheduledScraping() {
 
 // Start the scheduled scraping when server starts
 startScheduledScraping();
+
+// Status endpoint for analytics page
+app.get('/api/status', (req, res) => {
+  res.json({ 
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    scheduledScraping: cronTask ? 'active' : 'inactive',
+    logCount: logs.length,
+    uptime: Math.floor(process.uptime())
+  });
+});
 
 app.listen(3000, () => log('INFO', 'Server running on http://localhost:3000'));

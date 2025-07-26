@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Firebase Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Quick Firebase Connection Test</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, limit, query } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
+            authDomain: "linkrtdb.firebaseapp.com",
+            projectId: "linkrtdb",
+            storageBucket: "linkrtdb.firebasestorage.app",
+            messagingSenderId: "250414480081",
+            appId: "1:250414480081:web:79de7428b63923578063f0",
+            measurementId: "G-EZ2XERVTK7"
+        };
+
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(message, type = 'info') {
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+            resultsDiv.innerHTML += `<div class="${className}">${message}</div>`;
+        }
+
+        async function quickTest() {
+            try {
+                addResult('🔥 Initializing Firebase...', 'info');
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                addResult('✅ Firebase initialized successfully', 'success');
+
+                // Test viewers collection
+                addResult('🔍 Testing viewers collection...', 'info');
+                const viewersRef = collection(db, 'viewers');
+                const viewersQuery = query(viewersRef, limit(5));
+                const viewersSnapshot = await getDocs(viewersQuery);
+                
+                if (viewersSnapshot.empty) {
+                    addResult('⚠️ Viewers collection is empty', 'error');
+                } else {
+                    addResult(`✅ Found ${viewersSnapshot.size} viewer documents`, 'success');
+                    viewersSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        addResult(`📄 Viewer: ${data.name || 'Unknown'} - ${data.company || 'No company'}`, 'info');
+                    });
+                }
+
+            } catch (error) {
+                addResult(`❌ Error: ${error.code} - ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(quickTest, 1000);
+        });
+    </script>
+</body>
+</html>

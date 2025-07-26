@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Firebase Client-Side Debug Test</h1>
+    <div id="status">Starting tests...</div>
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getFirestore, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbSZ_1BaGPCOMJMKCwKnAG2PNiMNX6yNA",
+            authDomain: "linkedin-tracker-8a84b.firebaseapp.com",
+            projectId: "linkedin-tracker-8a84b",
+            storageBucket: "linkedin-tracker-8a84b.firebasestorage.app",
+            messagingSenderId: "390275669751",
+            appId: "1:390275669751:web:c6b16c2b0b4a5c6a8c5b8f"
+        };
+
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        function addStatus(message, type = 'info') {
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+            statusDiv.innerHTML += `<div class="${className}">${message}</div>`;
+            console.log(message);
+        }
+
+        function addResult(title, content, type = 'info') {
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : 'info');
+            resultsDiv.innerHTML += `<h3 class="${className}">${title}</h3><pre>${content}</pre>`;
+        }
+
+        async function runTests() {
+            try {
+                addStatus('🔥 Initializing Firebase...', 'info');
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                addStatus('✅ Firebase initialized successfully', 'success');
+
+                // Test each collection with detailed error handling
+                const collections = ['viewers', 'daily_totals', 'screenshots'];
+                
+                for (const collectionName of collections) {
+                    try {
+                        addStatus(`📊 Testing ${collectionName} collection...`, 'info');
+                        
+                        // Try basic query first
+                        const basicQuery = collection(db, collectionName);
+                        const basicSnapshot = await getDocs(basicQuery);
+                        
+                        addStatus(`✅ Basic query successful: ${basicSnapshot.size} documents`, 'success');
+                        
+                        if (basicSnapshot.empty) {
+                            addResult(`${collectionName} Collection`, 'No documents found (empty collection)', 'error');
+                        } else {
+                            let result = `Found ${basicSnapshot.size} documents:\n\n`;
+                            let count = 0;
+                            basicSnapshot.forEach(doc => {
+                                if (count < 3) { // Show first 3 documents
+                                    const data = doc.data();
+                                    result += `Document ID: ${doc.id}\n`;
+                                    result += `Data: ${JSON.stringify(data, null, 2)}\n\n`;
+                                    count++;
+                                }
+                            });
+                            addResult(`${collectionName} Collection`, result, 'success');
+                        }
+                        
+                        // Try ordered query
+                        try {
+                            let orderedQuery;
+                            if (collectionName === 'viewers') {
+                                orderedQuery = query(collection(db, collectionName), orderBy("timestamp", "desc"), limit(5));
+                            } else if (collectionName === 'daily_totals') {
+                                orderedQuery = query(collection(db, collectionName), orderBy("date", "desc"), limit(5));
+                            } else if (collectionName === 'screenshots') {
+                                orderedQuery = query(collection(db, collectionName), orderBy("timestamp", "desc"), limit(5));
+                            }
+                            
+                            const orderedSnapshot = await getDocs(orderedQuery);
+                            addStatus(`✅ Ordered query successful: ${orderedSnapshot.size} documents`, 'success');
+                        } catch (orderError) {
+                            addStatus(`⚠️ Ordered query failed: ${orderError.message}`, 'error');
+                            console.error('Order error details:', orderError);
+                        }
+                        
+                    } catch (error) {
+                        addStatus(`❌ Error with ${collectionName}: ${error.message}`, 'error');
+                        addResult(`${collectionName} Error`, error.stack || error.message, 'error');
+                        console.error(`${collectionName} error:`, error);
+                    }
+                }
+                
+                addStatus('🎉 All tests completed!', 'success');
+                
+            } catch (error) {
+                addStatus(`❌ Firebase initialization failed: ${error.message}`, 'error');
+                addResult('Initialization Error', error.stack || error.message, 'error');
+                console.error('Firebase init error:', error);
+            }
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>
