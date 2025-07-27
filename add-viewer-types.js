@@ -70,6 +70,20 @@ function determineViewerType(name) {
     return 'premium';
   }
   
+  // "All other viewers" patterns - professional descriptions without actual names
+  // These are from the premium "All other viewers" section showing anonymous profile info
+  if (lowerName.includes(' in the ') && lowerName.includes(' industry') ||
+      lowerName.includes(' from ') && (lowerName.includes(' area') || lowerName.includes(' region')) ||
+      lowerName.match(/^(founder|ceo|cto|manager|director|engineer|developer|analyst|consultant|specialist)\s+in/i) ||
+      lowerName.match(/^(student|professional|executive)\s+(at|in)/i) ||
+      lowerName.includes('industry from') ||
+      lowerName.includes('services industry') ||
+      lowerName.includes('technology industry') ||
+      lowerName.includes('financial services') ||
+      lowerName.includes('greater') && lowerName.includes('area')) {
+    return 'premium';
+  }
+  
   // Free viewer (visible name)
   return 'free';
 }
