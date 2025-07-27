@@ -11,11 +11,13 @@ I added several API endpoints to get all the data, and the system works better n
 ## Setup
 
 1. Install Node.js dependencies:
+
    ```bash
    npm install
    ```
 
 2. Copy environment template and configure:
+
    ```bash
    cp .env.example .env
    ```
@@ -23,6 +25,7 @@ I added several API endpoints to get all the data, and the system works better n
 3. Add your LinkedIn cookies to `.env` or `linkedin_cookies.json`
 
 4. Start the server:
+
    ```bash
    node server.js
    ```
@@ -32,7 +35,7 @@ I added several API endpoints to get all the data, and the system works better n
 ## Essential Files
 
 - `server.js` - Main server and API
-- `scraper.js` - LinkedIn scraper  
+- `scraper.js` - LinkedIn scraper
 - `mongodb.js` - Database operations
 - `json-storage.js` - Backup storage
 - `public/` - Web dashboard

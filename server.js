@@ -346,11 +346,19 @@ app.get('/api/mongodb/last-scraping-log', async (req, res) => {
     const lastLog = await storage.getLastScrapingLog();
     const nextScheduled = await storage.getNextScheduledScrapeTime();
     
+    // Include randomized scheduling info
+    const schedulingInfo = {
+      mode: randomizedTimeout ? 'randomized' : (cronTask ? 'cron' : 'none'),
+      nextRandomizedTime: nextRandomizedScrapeTime,
+      nextCronTime: nextScheduled
+    };
+    
     res.json({
       success: true,
       data: {
         lastLog: lastLog,
-        nextScheduled: nextScheduled
+        nextScheduled: randomizedTimeout ? nextRandomizedScrapeTime : nextScheduled,
+        schedulingInfo: schedulingInfo
       }
     });
   } catch (error) {
@@ -630,8 +638,69 @@ app.post('/api/update-schedule', (req, res) => {
   }
 });
 
+// Fast Mode (Randomized Scraping) Toggle API
+app.post('/api/toggle-fast-mode', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    
+    if (enabled) {
+      // Enable Fast Mode (randomized scraping)
+      if (cronTask) {
+        cronTask.destroy();
+        cronTask = null;
+        log('INFO', '📅 Cron scraping stopped for Fast Mode');
+      }
+      
+      if (!randomizedTimeout) {
+        scheduleNextRandomScrape();
+        log('INFO', '🎲 Fast Mode activated (9-16 minute randomized intervals)');
+      }
+      
+      res.json({
+        success: true,
+        message: 'Fast Mode activated',
+        mode: 'randomized',
+        enabled: true,
+        nextScrape: nextRandomizedScrapeTime
+      });
+      
+    } else {
+      // Disable Fast Mode (stop randomized scraping)
+      if (randomizedTimeout) {
+        clearTimeout(randomizedTimeout);
+        randomizedTimeout = null;
+        nextRandomizedScrapeTime = null;
+        log('INFO', '🎲 Fast Mode deactivated');
+      }
+      
+      res.json({
+        success: true,
+        message: 'Fast Mode deactivated',
+        mode: 'none',
+        enabled: false
+      });
+    }
+    
+  } catch (error) {
+    log('ERROR', `❌ Failed to toggle Fast Mode: ${error.message}`);
+    res.json({ success: false, error: error.message });
+  }
+});
+
+// Get Fast Mode status
+app.get('/api/fast-mode-status', (req, res) => {
+  res.json({
+    success: true,
+    enabled: randomizedTimeout !== null,
+    mode: randomizedTimeout ? 'randomized' : (cronTask ? 'cron' : 'none'),
+    nextScrape: nextRandomizedScrapeTime,
+    isActive: randomizedTimeout !== null
+  });
+});
+
 // Randomized scraping system to avoid detection
 let randomizedTimeout = null;
+let nextRandomizedScrapeTime = null;
 
 function scheduleNextRandomScrape(minMinutes = 9, maxMinutes = 16) {
   // Clear existing timeout if any
@@ -646,6 +715,9 @@ function scheduleNextRandomScrape(minMinutes = 9, maxMinutes = 16) {
   
   const minutes = Math.floor(randomInterval / 60000);
   const seconds = Math.floor((randomInterval % 60000) / 1000);
+  
+  // Calculate and store next scrape time
+  nextRandomizedScrapeTime = new Date(Date.now() + randomInterval);
   
   log('INFO', `📅 Next scrape scheduled in ${minutes}m ${seconds}s (randomized: ${minMinutes}-${maxMinutes}min range)`);
   

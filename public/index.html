@@ -1238,6 +1238,36 @@
       margin-top: 0.5rem;
       letter-spacing: -0.005em;
     }
+
+    /* Toggle Switch Styles */
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: #22c55e;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-slider:hover {
+      background-color: #bbb;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:hover {
+      background-color: #16a34a;
+    }
   </style>
 </head>
 <body>
@@ -1331,6 +1361,21 @@
             <button class="btn btn-danger" onclick="stopScrape()">
               Stop Tracking
             </button>
+            
+            <!-- Fast Mode Toggle -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
+              <label style="font-size: 0.875rem; font-weight: 500; color: #1a1a1a; margin: 0; cursor: pointer;" for="fast-mode-toggle">
+                🚀 Fast Mode
+              </label>
+              <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                <input type="checkbox" id="fast-mode-toggle" onchange="toggleFastMode()" style="opacity: 0; width: 0; height: 0;">
+                <span class="toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;"></span>
+              </label>
+            </div>
+            <div id="fast-mode-status" style="font-size: 0.75rem; color: #666; text-align: center; margin-top: -0.25rem;">
+              Checking status...
+            </div>
+            
             <button class="btn btn-secondary" onclick="refreshAllData()">
               Refresh All Data
             </button>
@@ -1625,11 +1670,6 @@
       ? 'http://localhost:3000' 
       : window.location.origin;
     
-    // Debug: Log the backend URL being used
-    console.log('🔗 Backend URL detected:', BACKEND_URL);
-    console.log('🌐 Current hostname:', window.location.hostname);
-    console.log('🏠 Current origin:', window.location.origin);
-    
     // Status management system
     class StatusManager {
       constructor() {
@@ -1890,17 +1930,8 @@
       // Fetch and display server logs
       async fetchServerLogs() {
         try {
-          // Add cache-busting parameter
-          const url = `${BACKEND_URL}/api/logs?_t=${Date.now()}`;
-          console.log('🔗 Fetching logs from:', url);
-          const response = await fetch(url);
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          
+          const response = await fetch(`${BACKEND_URL}/api/logs`);
           const logs = await response.json();
-          console.log('📋 Received logs:', logs.length, 'entries');
           
           // Only add new logs if they're different from last fetch
           if (logs.length !== this.lastLogCount) {
@@ -1914,7 +1945,6 @@
             this.lastLogCount = logs.length;
           }
         } catch (error) {
-          console.error('❌ Log fetch error:', error);
           this.addLog('SYSTEM', `Failed to fetch server logs: ${error.message}`, 'ERROR');
         }
       }
@@ -2465,18 +2495,9 @@
     // Auto-refresh logs from backend
     async function fetchBackendLogs() {
       try {
-        // Add cache-busting parameter
-        const url = `${BACKEND_URL}/api/logs?limit=100&_t=${Date.now()}`;
-        console.log('🔗 Fetching backend logs from:', url);
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
+        const response = await fetch(`${BACKEND_URL}/api/logs?limit=100`);
         if (response.ok) {
           const logsData = await response.json();
-          console.log('📋 Received backend logs:', logsData.length || 0, 'entries');
           const container = document.getElementById('logs-container');
           
           // Clear existing logs
@@ -2511,10 +2532,9 @@
           }
         }
       } catch (error) {
-        console.error('❌ Backend logs fetch error:', error);
         // Only log error if it's the first time
         if (!window.logFetchErrorLogged) {
-          addLog('SYSTEM', `Could not fetch backend logs: ${error.message}`, 'WARNING');
+          addLog('SYSTEM', 'Could not fetch backend logs (server may be offline)', 'WARNING');
           window.logFetchErrorLogged = true;
         }
       }
@@ -2589,6 +2609,77 @@
       await checkServerStatus();
     }
 
+    // Fast Mode functions
+    async function toggleFastMode() {
+      const toggle = document.getElementById('fast-mode-toggle');
+      const statusDiv = document.getElementById('fast-mode-status');
+      
+      try {
+        statusDiv.textContent = 'Updating...';
+        statusDiv.style.color = '#f39c12';
+        
+        const response = await fetch(`${BACKEND_URL}/api/toggle-fast-mode`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: toggle.checked })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          updateFastModeStatus(result.enabled, result.nextScrape);
+          addLog('SYSTEM', result.message, 'SUCCESS');
+          
+          // Refresh scraping activity to show updated schedule
+          setTimeout(refreshScrapingActivity, 1000);
+        } else {
+          throw new Error(result.error || 'Failed to toggle Fast Mode');
+        }
+        
+      } catch (error) {
+        addLog('ERROR', `Failed to toggle Fast Mode: ${error.message}`, 'ERROR');
+        // Revert toggle state
+        toggle.checked = !toggle.checked;
+        statusDiv.textContent = 'Error updating';
+        statusDiv.style.color = '#dc2626';
+      }
+    }
+
+    function updateFastModeStatus(enabled, nextScrape) {
+      const statusDiv = document.getElementById('fast-mode-status');
+      
+      if (enabled) {
+        statusDiv.textContent = 'Active (9-16 min intervals)';
+        statusDiv.style.color = '#22c55e';
+        
+        if (nextScrape) {
+          const nextTime = new Date(nextScrape);
+          const minutes = Math.ceil((nextTime - new Date()) / 60000);
+          if (minutes > 0) {
+            statusDiv.textContent = `Next scrape in ~${minutes}m`;
+          }
+        }
+      } else {
+        statusDiv.textContent = 'Inactive';
+        statusDiv.style.color = '#64748b';
+      }
+    }
+
+    async function loadFastModeStatus() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/fast-mode-status`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const toggle = document.getElementById('fast-mode-toggle');
+          toggle.checked = result.enabled;
+          updateFastModeStatus(result.enabled, result.nextScrape);
+        }
+      } catch (error) {
+        console.log('Could not load Fast Mode status:', error.message);
+      }
+    }
+
     // Manual data refresh function (no cache to clear)
     function refreshAllData() {
       addLog('SYSTEM', 'Refreshing all data from MongoDB...', 'INFO');
@@ -2630,6 +2721,9 @@
         initializeAnalytics();
         initializeChart(); // Initialize the chart
         startAutoRefresh();
+        
+        // Load Fast Mode status
+        loadFastModeStatus();
         
         // Start server log fetching
         liveLogger.fetchServerLogs();
@@ -3033,8 +3127,30 @@
             durationElement.className = 'activity-value';
           }
           
-          // Update next scheduled time based on current schedule
-          updateNextScheduledTime(nextScheduledElement);
+          // Update next scheduled time from API response
+          if (nextScheduled) {
+            const nextTime = new Date(nextScheduled);
+            const istTime = nextTime.toLocaleString("en-IN", { 
+              timeZone: "Asia/Kolkata",
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            nextScheduledElement.textContent = istTime;
+            nextScheduledElement.className = 'activity-value';
+            
+            // Show time remaining if it's soon
+            const timeUntil = nextTime - new Date();
+            if (timeUntil > 0 && timeUntil < 60 * 60 * 1000) { // Less than 1 hour
+              const minutes = Math.ceil(timeUntil / 60000);
+              nextScheduledElement.textContent = `${istTime} (in ~${minutes}m)`;
+            }
+          } else {
+            nextScheduledElement.textContent = 'Not scheduled';
+            nextScheduledElement.className = 'activity-value warning';
+          }
           
           addLog('ACTIVITY', 'Scraping activity refreshed successfully', 'SUCCESS');
         } else {
