@@ -2,10 +2,12 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
 const path = require('path');
-const admin = require('firebase-admin');
+// const admin = require('firebase-admin');
 require('dotenv').config();
 
+// Firebase temporarily disabled - using MongoDB instead
 // Initialize Firebase Admin if not already initialized
+/*
 if (!admin.apps.length) {
   const serviceAccount = require('./serviceAccountKey.json');
   admin.initializeApp({
@@ -14,21 +16,34 @@ if (!admin.apps.length) {
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET || 'linkrtdb.firebasestorage.app'
   });
 }
+*/
 
+// Firebase database and storage temporarily disabled - using MongoDB instead
+/*
 const db = admin.firestore();
 // Use the default bucket - Firebase will handle the correct bucket name
 const bucket = admin.storage().bucket();
+*/
+
+const { saveViewerData, saveScrapingLog } = require('./mongodb');
 
 puppeteer.use(StealthPlugin());
 
-async function scrapeProfileViews(log) {
+async function scrapeProfileViews(storage, log, triggerType = 'manual') {
   const path = require('path');
   const COOKIES_PATH = path.join(__dirname, 'linkedin_cookies.json');
   const SCREENSHOT_DIR = path.join(__dirname, 'public');
   
   log('INFO', '🔧 Initializing Puppeteer browser...');
-  const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ 
+    headless: 'new', 
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    timeout: 60000 // 60 second timeout for browser launch
+  });
   const page = await browser.newPage();
+  
+  // Set default timeout for all page operations
+  page.setDefaultTimeout(60000); // 60 seconds
 
   try {
     // Auto-generate cookies file from .env if not present
@@ -58,7 +73,10 @@ async function scrapeProfileViews(log) {
     await page.setViewport({ width: 1280, height: 800 });
 
     log('INFO', '🌐 Navigating to LinkedIn profile views page...');
-    await page.goto('https://www.linkedin.com/me/profile-views/', { waitUntil: 'networkidle2' });
+    await page.goto('https://www.linkedin.com/me/profile-views/', { 
+      waitUntil: 'networkidle2', 
+      timeout: 60000 // Increase timeout to 60 seconds
+    });
     await new Promise(res => setTimeout(res, 3000));
 
     // Check for login redirect
@@ -81,34 +99,131 @@ async function scrapeProfileViews(log) {
     // Use more robust selectors for viewer cards
     const result = await page.evaluate(() => {
       let totalViewers = 0;
-      // Try to get total viewers from the main analytics header
-      const totalEl = document.querySelector('p.text-body-medium-bold.pr1.text-heading-large');
-      if (totalEl) {
-        totalViewers = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
+      
+      // Try to get total viewers from "Profile viewers in the past 90 days" section first
+      const past90DaysElement = Array.from(document.querySelectorAll('*')).find(el => 
+        el.textContent && el.textContent.includes('Profile viewers in the past 90 days')
+      );
+      
+      if (past90DaysElement) {
+        // Look for the number right above this text
+        let current = past90DaysElement;
+        while (current && current.previousElementSibling) {
+          current = current.previousElementSibling;
+          const text = current.textContent || '';
+          const match = text.match(/(\d{1,4}(?:,\d{3})*)/);
+          if (match) {
+            totalViewers = parseInt(match[1].replace(/,/g, ''));
+            break;
+          }
+        }
+        
+        // Also try looking in parent elements
+        if (totalViewers === 0) {
+          let parent = past90DaysElement.parentElement;
+          while (parent && parent !== document.body) {
+            const numberElements = parent.querySelectorAll('*');
+            for (let el of numberElements) {
+              const text = el.textContent || '';
+              const match = text.match(/^(\d{1,4}(?:,\d{3})*)$/);
+              if (match && parseInt(match[1].replace(/,/g, '')) > 100) {
+                totalViewers = parseInt(match[1].replace(/,/g, ''));
+                break;
+              }
+            }
+            if (totalViewers > 0) break;
+            parent = parent.parentElement;
+          }
+        }
       }
+      
+      // Fallback to original method if not found
+      if (totalViewers === 0) {
+        const totalEl = document.querySelector('p.text-body-medium-bold.pr1.text-heading-large');
+        if (totalEl) {
+          totalViewers = parseInt(totalEl.textContent.replace(/[^\d]/g, ''));
+        }
+      }
+      
       // Find 'Viewers you can browse for free' section
       let freeViewers = [];
       let allViewers = [];
+      
       // Use more robust selectors for viewer cards
-      const viewerCards = document.querySelectorAll('.profile-view-card, .artdeco-list__item');
+      const viewerCards = document.querySelectorAll('.profile-view-card, .artdeco-list__item, .profile-views-analytics__item');
       viewerCards.forEach(row => {
-        const name = row.querySelector('.profile-view-card__name, .artdeco-entity-lockup__title')?.textContent.trim() || '';
-        const headline = row.querySelector('.profile-view-card__headline, .artdeco-entity-lockup__subtitle')?.textContent.trim() || '';
+        const name = row.querySelector('.profile-view-card__name, .artdeco-entity-lockup__title, .profile-topcard-person-entity__name')?.textContent.trim() || '';
+        const headline = row.querySelector('.profile-view-card__headline, .artdeco-entity-lockup__subtitle, .profile-topcard-person-entity__headline')?.textContent.trim() || '';
         const company = row.querySelector('.profile-view-card__company, .artdeco-entity-lockup__metadata')?.textContent.trim() || '';
-        const timestamp = row.querySelector('.profile-view-card__timestamp, .member-analytics-addon-summary__list-item-date')?.textContent.trim() || '';
-        allViewers.push({ name, headline, company, timestamp });
+        
+        // Try multiple selectors for timestamp/viewed time
+        let timestamp = row.querySelector('.profile-view-card__timestamp, .member-analytics-addon-summary__list-item-date, .profile-views-analytics__item-time')?.textContent.trim() || '';
+        
+        // Also look for text nodes that might contain "Viewed X ago"
+        if (!timestamp) {
+          const allText = row.textContent || '';
+          const timeMatch = allText.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
+          if (timeMatch) {
+            timestamp = timeMatch[0];
+          }
+        }
+        
+        // Extract "Viewed X hours ago" information
+        let viewedTime = 'Unknown';
+        const timeMatch = timestamp.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
+        if (timeMatch) {
+          const [, num, unit] = timeMatch;
+          viewedTime = `${num} ${unit}${parseInt(num) !== 1 ? 's' : ''} ago`;
+        } else if (timestamp && timestamp.toLowerCase().includes('ago')) {
+          viewedTime = timestamp;
+        } else {
+          // If no "viewed time" found, use default
+          viewedTime = 'Unknown';
+        }
+        
+        allViewers.push({ name, headline, company, timestamp: '', viewedTime });
       });
+      
       // Find free viewers section by heading text
-      const freeSection = Array.from(document.querySelectorAll('section')).find(sec => sec.textContent.includes('Viewers you can browse for free'));
+      const freeSection = Array.from(document.querySelectorAll('section')).find(sec => 
+        sec.textContent.includes('Viewers you can browse for free')
+      );
+      
       if (freeSection) {
-        freeViewers = Array.from(freeSection.querySelectorAll('.profile-view-card, .artdeco-list__item')).map(row => {
-          const name = row.querySelector('.profile-view-card__name, .artdeco-entity-lockup__title')?.textContent.trim() || '';
-          const headline = row.querySelector('.profile-view-card__headline, .artdeco-entity-lockup__subtitle')?.textContent.trim() || '';
+        freeViewers = Array.from(freeSection.querySelectorAll('.profile-view-card, .artdeco-list__item, .profile-views-analytics__item')).map(row => {
+          const name = row.querySelector('.profile-view-card__name, .artdeco-entity-lockup__title, .profile-topcard-person-entity__name')?.textContent.trim() || '';
+          const headline = row.querySelector('.profile-view-card__headline, .artdeco-entity-lockup__subtitle, .profile-topcard-person-entity__headline')?.textContent.trim() || '';
           const company = row.querySelector('.profile-view-card__company, .artdeco-entity-lockup__metadata')?.textContent.trim() || '';
-          const timestamp = row.querySelector('.profile-view-card__timestamp, .member-analytics-addon-summary__list-item-date')?.textContent.trim() || '';
-          return { name, headline, company, timestamp };
+          
+          // Try multiple selectors for timestamp/viewed time
+          let timestamp = row.querySelector('.profile-view-card__timestamp, .member-analytics-addon-summary__list-item-date, .profile-views-analytics__item-time')?.textContent.trim() || '';
+          
+          // Also look for text nodes that might contain "Viewed X ago"
+          if (!timestamp) {
+            const allText = row.textContent || '';
+            const timeMatch = allText.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
+            if (timeMatch) {
+              timestamp = timeMatch[0];
+            }
+          }
+          
+          // Extract "Viewed X hours ago" information for free viewers too
+          let viewedTime = 'Unknown';
+          const timeMatch = timestamp.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
+          if (timeMatch) {
+            const [, num, unit] = timeMatch;
+            viewedTime = `${num} ${unit}${parseInt(num) !== 1 ? 's' : ''} ago`;
+          } else if (timestamp && timestamp.toLowerCase().includes('ago')) {
+            viewedTime = timestamp;
+          } else {
+            // If no "viewed time" found, use default
+            viewedTime = 'Unknown';
+          }
+          
+          return { name, headline, company, timestamp: '', viewedTime };
         });
       }
+      
       // Remove duplicates from allViewers
       const seen = new Set();
       allViewers = allViewers.filter(v => {
@@ -117,42 +232,83 @@ async function scrapeProfileViews(log) {
         seen.add(key);
         return true;
       });
+      
       return { totalViewers, freeViewers, allViewers };
     });
 
     // Log and save the result
     log('INFO', `📈 Total Viewers: ${result.totalViewers}, Free Viewers: ${result.freeViewers.length}`);
     
-    log('INFO', '💾 Saving viewer data to Firestore...');
-    // Save individual viewers to Firestore
+    // Save viewer data to MongoDB instead of Firestore
+    log('INFO', '💾 Saving viewer data to MongoDB...');
     let savedCount = 0;
-    for (const viewer of result.allViewers) {
-      if (viewer.name && viewer.name.trim()) { // Only save if name exists
-        const viewerWithTimestamp = {
-          ...viewer,
-          timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
-          scraped_at: admin.firestore.FieldValue.serverTimestamp()
-        };
-        await db.collection('viewers').add(viewerWithTimestamp);
-        savedCount++;
+    try {
+      for (const viewer of result.allViewers) {
+        if (viewer.name && viewer.name.trim()) { // Only save if name exists
+          const now = new Date();
+          const istTimestamp = now.toLocaleString('en-IN', {
+            timeZone: 'Asia/Kolkata',
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+          
+          const viewerWithTimestamp = {
+            ...viewer,
+            viewedTime: viewer.viewedTime || viewer.timestamp || 'Unknown', // Store the "Viewed X ago" info
+            timestamp: istTimestamp, // Use IST timestamp
+            istTimestamp: istTimestamp, // Add istTimestamp field
+            scraped_at: istTimestamp
+          };
+          
+          // Use the storage parameter passed from server.js
+          await storage.saveViewer(viewerWithTimestamp);
+          savedCount++;
+        }
       }
+      log('INFO', `✅ Saved ${savedCount} viewer records to MongoDB`);
+    } catch (error) {
+      log('ERROR', `❌ Failed to save viewers to MongoDB: ${error.message}`);
     }
-    log('INFO', `✅ Saved ${savedCount} viewer records to Firestore`);
 
-    // Save daily total to Firestore
-    log('INFO', '📊 Saving daily total to Firestore...');
-    const today = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
-    await db.collection('daily_totals').add({
-      date: today,
-      total: result.totalViewers,
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-    log('INFO', `✅ Daily total (${result.totalViewers}) saved to Firestore`);
+    // Save daily total to MongoDB instead of Firestore
+    log('INFO', '📊 Saving daily total to MongoDB...');
+    try {
+      const now = new Date();
+      const standardTimestamp = now.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      
+      await storage.saveDailyTotal(standardTimestamp, result.totalViewers, result.totalViewers);
+      log('INFO', `✅ Daily total (${result.totalViewers}) saved to MongoDB`);
+    } catch (error) {
+      log('ERROR', `❌ Failed to save daily total to MongoDB: ${error.message}`);
+    }
 
     // Take screenshot and upload to Firebase Storage with IST timestamp
     log('INFO', '📸 Taking screenshot...');
     const now = new Date();
-    const istTime = now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+    const istTime = now.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
     const [datePart, timePart] = istTime.split(', ');
     const [day, month, year] = datePart.split('/');
     const formattedDate = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
@@ -237,21 +393,23 @@ async function scrapeProfileViews(log) {
       log('INFO', '💾 Screenshot will be served from local public directory');
     }
     
-    // Save screenshot metadata to Firestore regardless of upload status
+    // Save screenshot metadata to MongoDB instead of Firestore
     try {
-      await db.collection('screenshots').add({
+      const screenshotMetadata = {
         filename: screenshotName,
         timestamp: istTime,
         totalViewers: result.totalViewers,
-        uploadTime: admin.firestore.FieldValue.serverTimestamp(),
+        uploadTime: istTime, // Use standardized timestamp format
         firebasePath: firebaseUploaded ? `screenshots/${screenshotName}` : null,
         localPath: `/screenshots/${screenshotName}`, // Web-accessible path
         status: firebaseUploaded ? 'uploaded' : 'local_only',
         size: fs.statSync(publicScreenshotPath).size,
-        istTimestamp: now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
-      });
+        istTimestamp: istTime, // Keep for compatibility
+        triggerType: triggerType // Add trigger type to metadata
+      };
       
-      log('INFO', '📋 Screenshot metadata saved to Firestore');
+      await storage.saveScreenshot(screenshotMetadata);
+      log('INFO', '📋 Screenshot metadata saved to MongoDB');
     } catch (metadataError) {
       log('ERROR', `❌ Failed to save screenshot metadata: ${metadataError.message}`);
     }

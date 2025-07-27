@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LinkrtGOD - LinkedIn Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -12,14 +17,16 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-      background: #ffffff;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      background: #fafafa;
       min-height: 100vh;
-      color: #37352f;
-      font-size: 14px;
-      line-height: 1.5;
+      color: #1a1a1a;
+      font-size: 15px;
+      line-height: 1.6;
       margin: 0;
       padding: 0;
+      font-weight: 400;
+      letter-spacing: -0.011em;
     }
 
     .container {
@@ -28,7 +35,7 @@
       padding: 2rem 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.5rem;
     }
 
     .header {
@@ -41,161 +48,497 @@
     }
 
     .header h1 {
-      font-size: 2.25rem;
+      font-size: 3rem;
       font-weight: 700;
-      margin-bottom: 0.25rem;
-      color: #37352f;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
       letter-spacing: -0.02em;
+      line-height: 1.2;
     }
 
     .header p {
-      font-size: 0.875rem;
-      color: #787774;
+      font-size: 1rem;
+      color: #6b7280;
       font-weight: 400;
       margin: 0;
+      letter-spacing: -0.005em;
     }
 
     .control-panel {
-      background: #f7f6f3;
-      border-radius: 6px;
-      padding: 1rem;
-      border: 1px solid #e9e7e4;
-      margin-bottom: 1rem;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      transition: all 0.2s ease;
+    }
+
+    .control-panel:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
     .control-panel h3 {
-      font-size: 0.875rem;
+      font-size: 1.125rem;
       font-weight: 600;
-      color: #37352f;
-      margin-bottom: 0.75rem;
+      color: #1a1a1a;
+      margin-bottom: 1.5rem;
       text-align: left;
+      letter-spacing: -0.01em;
     }
 
     .control-buttons {
       display: flex;
-      gap: 0.5rem;
+      gap: 1rem;
       justify-content: flex-start;
       flex-wrap: wrap;
     }
 
     .btn {
-      padding: 0.5rem 1rem;
-      border: 1px solid #d3d1cb;
-      border-radius: 6px;
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
       font-size: 0.875rem;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
       background: #ffffff;
-      color: #37352f;
+      color: #374151;
       min-width: auto;
       text-transform: none;
-      letter-spacing: 0;
+      letter-spacing: -0.005em;
+      font-family: inherit;
     }
 
     .btn:hover {
-      background: #f7f6f3;
-      transform: none;
-      box-shadow: none;
+      background: #f9fafb;
+      border-color: #9ca3af;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
     }
 
     .btn-primary {
-      background: #2383e2;
-      color: white;
-      border-color: #2383e2;
+      position: relative;
+      background: #ffffff96;
+      color: #1f2937;
+      border-color: #1f2937;
+      border-width: 2px;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #1f2937;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: -1;
+    }
+
+    .btn-primary:hover::after {
+      transform: scaleX(1);
     }
 
     .btn-primary:hover {
-      background: #1a73d1;
-      border-color: #1a73d1;
+      color: white;
+      border-color: #1f2937;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px 0 rgba(31, 41, 55, 0.3);
     }
 
     .btn-danger {
-      background: #eb5757;
-      color: white;
-      border-color: #eb5757;
+      position: relative;
+      background: #d7000014;
+      color: #dc2626;
+      border-color: #dc2626;
+      border-width: 2px;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .btn-danger::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #dc2626;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: -1;
+    }
+
+    .btn-danger:hover::after {
+      transform: scaleX(1);
     }
 
     .btn-danger:hover {
-      background: #d84545;
-      border-color: #d84545;
+      color: white;
+      border-color: #dc2626;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px 0 rgba(220, 38, 38, 0.3);
+    }
+
+    .btn-secondary {
+      position: relative;
+      background: #f39c1230;
+      color: #f39c12;
+      border-color: #f39c12;
+      border-width: 2px;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .btn-secondary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f39c12;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: -1;
+    }
+
+    .btn-secondary:hover::after {
+      transform: scaleX(1);
+    }
+
+    .btn-secondary:hover {
+      color: white;
+      border-color: #f39c12;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px 0 rgba(243, 156, 18, 0.3);
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
       padding-bottom: 0;
       border-bottom: none;
     }
 
     .section-title {
-      font-size: 0.875rem;
+      font-size: 1.125rem;
       font-weight: 600;
-      color: #37352f;
+      color: #1a1a1a;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
+      letter-spacing: -0.01em;
     }
 
     .refresh-btn {
-      padding: 0.25rem 0.5rem;
+      padding: 0.5rem 1rem;
       background: #ffffff;
-      color: #37352f;
-      border: 1px solid #d3d1cb;
-      border-radius: 4px;
+      color: #6b7280;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       font-weight: 500;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
+      letter-spacing: -0.005em;
     }
 
     .refresh-btn:hover {
-      background: #f7f6f3;
-      transform: none;
-      box-shadow: none;
+      background: #f9fafb;
+      border-color: #9ca3af;
+      color: #374151;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
     }
 
     .data-table {
       width: 100%;
+      min-width: 450px;
       border-collapse: collapse;
-      font-size: 0.875rem;
-      background: white;
-      border: 1px solid #e9e7e4;
-      border-radius: 6px;
+      font-size: 0.8125rem;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
       overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     }
 
     .data-table th {
-      background: #f7f6f3;
-      padding: 0.75rem;
+      background: #f9fafb;
+      padding: 0.5rem;
       text-align: left;
       font-weight: 600;
-      color: #37352f;
-      border-bottom: 1px solid #e9e7e4;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
       font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.025em;
+      letter-spacing: 0.05em;
     }
 
     .data-table td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #f1f0ec;
+      padding: 0.5rem;
+      border-bottom: 1px solid #f3f4f6;
       vertical-align: top;
-      color: #37352f;
+      color: #1a1a1a;
+      font-size: 0.8125rem;
+      line-height: 1.4;
     }
 
     .data-table tr:hover {
-      background: #fbfbfa;
+      background: #fafbfc;
     }
 
     .table-container {
       max-height: 400px;
       overflow-y: auto;
-      border-radius: 6px;
-      border: 1px solid #e9e7e4;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
       background: #ffffff;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    /* Chart container styles */
+    .chart-container {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      height: 400px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .chart-wrapper {
+      flex: 1;
+      position: relative;
+      min-height: 300px;
+    }
+
+    .chart-controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .chart-control-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: #ffffff;
+      color: #6b7280;
+      transition: all 0.2s ease;
+      letter-spacing: -0.005em;
+    }
+
+    .chart-control-btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+      color: #374151;
+    }
+
+    .chart-control-btn.active {
+      background: #1f2937;
+      color: #ffffff;
+      border-color: #1f2937;
+      box-shadow: 0 2px 4px 0 rgba(31, 41, 55, 0.2);
+    }
+
+    /* Add premium styles for logs section */
+    .logs-section {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .logs-container {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      height: 200px;
+      overflow-y: auto;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .log-entry {
+      margin-bottom: 0.375rem;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+
+    .log-timestamp {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .log-level-INFO {
+      color: #1f2937;
+      font-weight: 500;
+    }
+
+    .log-level-ERROR {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .log-level-WARN {
+      color: #d97706;
+      font-weight: 500;
+    }
+
+    .log-level-DEBUG {
+      color: #7c3aed;
+      font-weight: 500;
+    }
+
+    .log-level-NETWORK {
+      color: #10b981;
+    }
+
+    .log-level-SUCCESS {
+      color: #059669;
+      font-weight: 600;
+    }
+
+    .status-section {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .overview-section {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .analytics-section {
+      background: rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    #viewerGrowthChart {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Activity log styles */
+    .scraping-activity-grid {
+      font-size: 0.875rem;
+    }
+
+    .activity-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .activity-label {
+      font-weight: 600;
+      color: #666;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+    }
+
+    .activity-value {
+      font-weight: 500;
+      color: #37352f;
+      padding: 0.25rem 0.5rem;
+      background: #f7f6f3;
+      border-radius: 4px;
+      border: 1px solid #e9e7e4;
+      min-height: 1.5rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .activity-value.success {
+      color: #28a745;
+      background: #d4edda;
+      border-color: #c3e6cb;
+    }
+
+    .activity-value.warning {
+      color: #772424;
+      background: #fffbed;
+      border-color: #ffdf7e;
+    }
+
+    .activity-value.error {
+      color: #dc3545;
+      background: #f8d7da;
+      border-color: #f5c6cb;
+    }
+
+    /* Collapsible section styles */
+    .collapsible-section {
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .collapsible-section.collapsed {
+      display: none;
+    }
+
+    .section-toggle {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-toggle:hover {
+      opacity: 0.8;
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 0.8rem;
+    }
+
+    .toggle-icon.collapsed {
+      transform: rotate(-90deg);
     }
 
     .status-badge {
@@ -221,6 +564,18 @@
       color: #1e3a8a;
     }
 
+    .text-success {
+      color: #16a34a !important;
+    }
+
+    .text-danger {
+      color: #dc2626 !important;
+    }
+
+    .text-gray {
+      color: #6b7280 !important;
+    }
+
     .logs-section {
       grid-column: 1 / -1;
       background: #ffffff;
@@ -231,15 +586,17 @@
     }
 
     .logs-container {
-      background: #1e1e1e;
-      color: #d4d4d4;
+      background: #ffffff;
+      color: #1a1a1a;
       padding: 1rem;
-      border-radius: 4px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
       height: 300px;
       overflow-y: auto;
-      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
       font-size: 0.8rem;
       line-height: 1.4;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     }
 
     .log-entry {
@@ -253,7 +610,7 @@
     }
 
     .log-level-INFO {
-      color: #9cdcfe;
+      color: #4a90e2; /* Darker blue instead of #9cdcfe */
     }
 
     .log-level-ERROR {
@@ -644,6 +1001,20 @@
     }
 
     @media (max-width: 768px) {      
+      .container {
+        padding: 1.5rem 1rem;
+        gap: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 2.25rem;
+      }
+      
+      .control-panel {
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      
       .overview-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -661,6 +1032,211 @@
       .main-grid {
         grid-template-columns: 1fr;
       }
+      
+      .data-table {
+        min-width: 400px;
+        font-size: 0.75rem;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 0.4rem;
+      }
+      
+      .table-container {
+        max-height: 300px;
+      }
+      
+      .chart-container {
+        padding: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1rem;
+      }
+    }
+
+    /* Premium section styles */
+    .status-section {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .overview-section {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .analytics-section {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    /* Premium status and progress styles */
+    .status-header h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      letter-spacing: -0.01em;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-bar {
+      background: #f1f5f9;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 8px;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    .progress-fill.active::after {
+      animation: shimmer 1.5s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* Premium toggle switch styling */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #e5e7eb;
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #1f2937;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    /* Premium collapsible sections */
+    .section-toggle {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      user-select: none;
+    }
+
+    .toggle-icon {
+      transition: transform 0.2s ease;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .toggle-icon.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-section {
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .collapsible-section.collapsed {
+      height: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Stats styling */
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 0.5rem;
+      letter-spacing: -0.005em;
     }
   </style>
 </head>
@@ -675,7 +1251,7 @@
     <!-- System Status Section -->
     <div class="status-section">
       <div class="status-header">
-        <h3>🔄 System Status</h3>
+        <h3>System Status</h3>
         <div class="status-indicators">
           <div class="status-indicator">
             <div class="status-dot idle" id="system-status"></div>
@@ -697,41 +1273,105 @@
       </div>
     </div>
 
-    <!-- Control Panel -->
+    <!-- Unified Control Panel -->
     <div class="control-panel">
-      <h3 style="margin-bottom: 1rem; color: #2c3e50; text-align: center;">System Controls</h3>
-      <div class="control-buttons">
-        <button class="btn btn-primary" onclick="launchScrape()">
-          Start Tracking
-        </button>
-        <button class="btn btn-danger" onclick="stopScrape()">
-          Stop Tracking
-        </button>
+      <h3 style="margin-bottom: 1rem; color: #1a1a1a; text-align: left;">Scraping Controls</h3>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+        <!-- Automatic Scraping Section -->
+        <div>
+          <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #1a1a1a;">
+            Automatic Scraping
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 200px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label style="font-size: 0.875rem; color: #666; font-weight: 500; min-width: 70px;">Schedule:</label>
+              <select id="scraping-schedule" onchange="updateScrapingSchedule()" style="padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #1a1a1a; font-size: 0.875rem; flex: 1;">
+                <option value="0 * * * *" selected>Every Hour</option>
+                <option value="*/30 * * * *">Every 30 Minutes</option>
+                <option value="0 */2 * * *">Every 2 Hours</option>
+                <option value="0 */6 * * *">Every 6 Hours</option>
+                <option value="0 0 * * *">Daily</option>
+              </select>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.875rem; color: #28a745; font-weight: 500;">Status:</span>
+              <span id="schedule-status" style="font-size: 0.875rem; color: #28a745; font-weight: 500;">Active (Hourly)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 500; color: #1a1a1a; font-size: 0.875rem; min-width: 70px;">Random:</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="random-intervals-toggle" onchange="toggleRandomIntervals()">
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="random-status" style="font-size: 0.875rem; color: #666;">Disabled</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 500; color: #1a1a1a; font-size: 0.875rem; min-width: 70px;">Interval:</span>
+              <select id="interval-select" style="padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #1a1a1a; font-size: 0.875rem; flex: 1;" onchange="updateInterval()">
+                <option value="300000">5 minutes</option>
+                <option value="600000" selected>10 minutes</option>
+                <option value="900000">15 minutes</option>
+                <option value="1800000">30 minutes</option>
+                <option value="3600000">1 hour</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Controls Section -->
+        <div>
+          <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #1a1a1a;">
+            Manual Controls
+          </h4>
+          <div class="control-buttons" style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 200px;">
+            <button class="btn btn-primary" onclick="launchScrape()">
+              Start Tracking
+            </button>
+            <button class="btn btn-danger" onclick="stopScrape()">
+              Stop Tracking
+            </button>
+            <button class="btn btn-secondary" onclick="refreshAllData()">
+              Refresh All Data
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Scraping Controls Section -->
+    <!-- Scraping Activity Log Section -->
     <div class="control-panel">
-      <h3 style="margin-bottom: 1rem; color: #2c3e50; text-align: center;">⚙️ Scraping Controls</h3>
-      <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-weight: 500; color: #2c3e50;">🎲 Random Intervals:</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="random-intervals-toggle" onchange="toggleRandomIntervals()">
-            <span class="toggle-slider"></span>
-          </label>
-          <span id="random-status" style="font-size: 0.875rem; color: #666;">Disabled</span>
+      <h3 style="margin-bottom: 1rem; color: #1a1a1a; text-align: left;">Scraping Activity Status</h3>
+      <div class="scraping-activity-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="activity-item">
+          <div class="activity-label">Last Scraping Time:</div>
+          <div class="activity-value" id="last-scraping-time">Not available</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-weight: 500; color: #2c3e50;">⏱️ Interval:</span>
-          <select id="interval-select" style="padding: 0.375rem 0.5rem; border: 1px solid #d3d1cb; border-radius: 4px; background: white; color: #37352f; font-size: 0.875rem;" onchange="updateInterval()">
-            <option value="300000">5 minutes</option>
-            <option value="600000" selected>10 minutes</option>
-            <option value="900000">15 minutes</option>
-            <option value="1800000">30 minutes</option>
-            <option value="3600000">1 hour</option>
-          </select>
+        <div class="activity-item">
+          <div class="activity-label">Trigger Type:</div>
+          <div class="activity-value" id="last-trigger-type">Not available</div>
         </div>
+        <div class="activity-item">
+          <div class="activity-label">Success Status:</div>
+          <div class="activity-value" id="scraping-success-status">Not available</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-label">Screenshot Taken:</div>
+          <div class="activity-value" id="screenshot-status">Not available</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-label">Next Scheduled:</div>
+          <div class="activity-value" id="next-scheduled-time">Not available</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-label">Duration:</div>
+          <div class="activity-value" id="scraping-duration">Not available</div>
+        </div>
+      </div>
+      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(233, 231, 228, 0.5);">
+        <button class="btn" onclick="refreshScrapingActivity()" style="background: #3498db; color: white; border-color: #3498db; font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+          Refresh Activity
+        </button>
       </div>
     </div>
 
@@ -739,7 +1379,7 @@
     <div class="overview-section">
       <div class="overview-grid">
         <div>
-          <h3 style="margin-bottom: 1rem; color: #2c3e50;">📈 Overview</h3>
+          <h3 style="margin-bottom: 1rem; color: #1a1a1a;">Overview</h3>
           <div class="stats-summary">
             <div class="stat-card">
               <div class="stat-number" id="overview-total-viewers">0</div>
@@ -756,14 +1396,14 @@
           </div>
         </div>
         <div class="view-increases">
-          <h4>📊 View Increases</h4>
+          <h4>View Increases</h4>
           <div class="increase-item">
             <span>Today</span>
             <span class="increase-value" id="increase-today">+0</span>
           </div>
           <div class="increase-item">
             <span>Past 
-              <select id="hours-dropdown" style="background: rgba(255,255,255,0.9); border: 1px solid #d3d1cb; border-radius: 4px; color: #37352f; padding: 2px 6px; font-size: 0.875rem;" onchange="updatePastHoursData()">
+              <select id="hours-dropdown" style="background: white; border: 1px solid #d1d5db; border-radius: 6px; color: #1a1a1a; padding: 0.375rem 0.5rem; font-size: 0.875rem;" onchange="updatePastHoursData()">
                 <option value="1">1</option>
                 <option value="3">3</option>
                 <option value="6">6</option>
@@ -802,7 +1442,7 @@
       <!-- Viewers Section -->
       <div class="analytics-section grid-item-half">
         <div class="section-header">
-          <h3 class="section-title">👥 Viewers Data</h3>
+          <h3 class="section-title">Viewers Data</h3>
           <button class="refresh-btn" onclick="fetchViewersData()">Refresh</button>
         </div>
         <div class="table-container">
@@ -811,14 +1451,13 @@
               <tr>
                 <th>#</th>
                 <th>Name</th>
-                <th>Company</th>
                 <th>Date</th>
                 <th>Type</th>
               </tr>
             </thead>
             <tbody id="viewers-table-body">
               <tr>
-                <td colspan="5" class="loading">
+                <td colspan="4" class="loading">
                   <div class="spinner"></div>
                   Loading viewers data...
                 </td>
@@ -831,7 +1470,7 @@
       <!-- Free Viewers Only Section -->
       <div class="analytics-section grid-item-half">
         <div class="section-header">
-          <h3 class="section-title">🆓 Free Viewers Only</h3>
+          <h3 class="section-title">Free Viewers Only</h3>
           <button class="refresh-btn" onclick="fetchFreeViewersData()">Refresh</button>
         </div>
         <div class="table-container">
@@ -840,8 +1479,8 @@
               <tr>
                 <th>#</th>
                 <th>Name</th>
-                <th>Company</th>
                 <th>Date</th>
+                <th>Viewed</th>
                 <th>Headline</th>
               </tr>
             </thead>
@@ -860,7 +1499,7 @@
       <!-- Daily Totals Section -->
       <div class="analytics-section grid-item-half">
         <div class="section-header">
-          <h3 class="section-title">📅 Daily Totals</h3>
+          <h3 class="section-title">Daily Totals</h3>
           <button class="refresh-btn" onclick="fetchDailyTotalsData()">Refresh</button>
         </div>
         <div class="table-container">
@@ -869,8 +1508,8 @@
               <tr>
                 <th>#</th>
                 <th>Date</th>
-                <th>Total Views</th>
-                <th>Status</th>
+                <th>Daily Views</th>
+                <th>Increment</th>
               </tr>
             </thead>
             <tbody id="daily-totals-table-body">
@@ -888,7 +1527,7 @@
       <!-- Screenshots Section -->
       <div class="analytics-section grid-item-half">
         <div class="section-header">
-          <h3 class="section-title">📸 Screenshots</h3>
+          <h3 class="section-title">Screenshots</h3>
           <button class="refresh-btn" onclick="fetchScreenshotsData()">Refresh</button>
         </div>
         <div class="table-container">
@@ -899,12 +1538,13 @@
                 <th>Preview</th>
                 <th>Filename</th>
                 <th>Date</th>
+                <th>Trigger</th>
                 <th>Size</th>
               </tr>
             </thead>
             <tbody id="screenshots-table-body">
               <tr>
-                <td colspan="5" class="loading">
+                <td colspan="6" class="loading">
                   <div class="spinner"></div>
                   Loading screenshots...
                 </td>
@@ -914,10 +1554,58 @@
         </div>
       </div>
 
+      <!-- Viewer Growth Chart Section -->
+      <div class="analytics-section grid-item-full">
+        <div class="section-header">
+          <div class="section-toggle" onclick="toggleChartSection()">
+            <span class="toggle-icon collapsed">▼</span>
+            <h3 class="section-title">Viewer Growth Chart</h3>
+          </div>
+          <button class="refresh-btn" onclick="fetchGrowthChartData()">Refresh</button>
+        </div>
+        <div class="chart-container collapsible-section collapsed" id="chart-section">
+          <div class="chart-controls">
+            <button class="chart-control-btn active" onclick="setChartRange('24h')" data-range="24h">24 Hours</button>
+            <button class="chart-control-btn" onclick="setChartRange('7d')" data-range="7d">7 Days</button>
+            <button class="chart-control-btn" onclick="setChartRange('30d')" data-range="30d">30 Days</button>
+            <button class="chart-control-btn" onclick="setChartRange('all')" data-range="all">All Time</button>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="viewerGrowthChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management Section -->
+      <div class="analytics-section grid-item-full">
+        <div class="section-header">
+          <div class="section-toggle" onclick="toggleDataManagementSection()">
+            <span class="toggle-icon collapsed">▼</span>
+            <h3 class="section-title">Data Management</h3>
+          </div>
+        </div>
+        <div class="collapsible-section collapsed" id="data-management-section">
+          <div style="padding: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.375rem;">
+              <span style="font-size: 0.75rem; color: #666; font-weight: 500;">Full Database:</span>
+              <a href="/data.html" target="_blank" class="btn" style="background: #1a1a1a; color: white; border-color: #1a1a1a; text-decoration: none; font-size: 0.75rem; padding: 0.375rem 0.75rem; display: inline-flex; align-items: center;">
+                Open Data Page
+              </a>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.375rem;">
+              <span style="font-size: 0.75rem; color: #666; font-weight: 500;">Export:</span>
+              <button class="btn" onclick="exportAllData()" style="background: white; color: #1a1a1a; border: 1px solid #d1d5db; font-size: 0.75rem; padding: 0.375rem 0.75rem; display: inline-flex; align-items: center;">
+                Download CSV
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Live Logs Section -->
       <div class="logs-section grid-item-full">
         <div class="section-header">
-          <h3 class="section-title">📝 Live System Logs</h3>
+          <h3 class="section-title">Live System Logs</h3>
           <button class="refresh-btn" onclick="clearLogs()">Clear Logs</button>
         </div>
         <div class="logs-container" id="logs-container">
@@ -929,36 +1617,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-    import { getFirestore, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
-
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAPX-69qLt2Kwc_6rjMzymUUXhtPwSxsHk",
-      authDomain: "linkrtdb.firebaseapp.com",
-      projectId: "linkrtdb",
-      storageBucket: "linkrtdb.firebasestorage.app",
-      messagingSenderId: "250414480081",
-      appId: "1:250414480081:web:79de7428b63923578063f0",
-      measurementId: "G-EZ2XERVTK7"
-    };    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Make Firebase available globally
-    window.db = db;
-    window.collection = collection;
-    window.getDocs = getDocs;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.limit = limit;
-
-    console.log('Firebase initialized successfully');
-    addLog('SYSTEM', 'Firebase connection established', 'SUCCESS');
-  </script>
 
   <script>
     // Backend URL configuration
@@ -1014,17 +1672,30 @@
         }
       }
 
-      setScrapingProgress(status) {
+      setScrapingProgress(status, callback = null) {
         switch(status) {
           case 'starting':
             this.updateSystemStatus('warning', 'System: Starting scraper...');
             this.updateCurrentLog('Scraper is starting up...');
-            this.updateProgress(10, 'Starting scraper...');
+            this.updateProgress(25, 'Starting scraper...');
             break;
           case 'running':
             this.updateSystemStatus('active', 'System: Scraper running');
             this.updateCurrentLog('Scraper is actively collecting data...');
-            this.updateProgress(50, 'Scraping in progress...');
+            this.updateProgress(75, 'Scraping in progress...');
+            // Poll for completion
+            if (callback) {
+              setTimeout(() => this.pollScrapingStatus(callback), 2000);
+            }
+            break;
+          case 'completed':
+            this.updateSystemStatus('active', 'System: Scraping completed');
+            this.updateCurrentLog('Scraping completed successfully');
+            this.updateProgress(100, 'Scraping completed');
+            setTimeout(() => {
+              this.updateProgress(0, 'Ready for next scrape');
+              this.updateSystemStatus('idle', 'System: Ready');
+            }, 2000);
             break;
           case 'stopped':
             this.updateSystemStatus('idle', 'System: Scraper stopped');
@@ -1036,6 +1707,33 @@
             this.updateCurrentLog('Scraper encountered an error');
             this.updateProgress(0, 'Scraper error');
             break;
+        }
+      }
+
+      async pollScrapingStatus(callback) {
+        try {
+          // Check if scraping is still in progress by fetching logs
+          const response = await fetch(`${BACKEND_URL}/api/logs`);
+          const logs = await response.json();
+          
+          // Look for completion indicators in recent logs
+          const recentLogs = logs.slice(0, 5);
+          const hasError = recentLogs.some(log => log.includes('ERROR') || log.includes('Failed'));
+          const hasCompletion = recentLogs.some(log => log.includes('Total viewers:') || log.includes('completed'));
+          
+          if (hasError) {
+            this.setScrapingProgress('error');
+            if (callback) callback('error');
+          } else if (hasCompletion) {
+            this.setScrapingProgress('completed');
+            if (callback) callback('completed');
+          } else {
+            // Continue polling
+            setTimeout(() => this.pollScrapingStatus(callback), 3000);
+          }
+        } catch (error) {
+          console.log('Polling error:', error);
+          // Continue with current status
         }
       }
     }
@@ -1067,44 +1765,38 @@
       }
     }
 
-    // Update overview stats (optimized)
+    // Update overview stats (using MongoDB API)
     async function updateOverviewStats() {
       try {
-        // Quick count queries
-        const [dailySnapshot, viewersSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "daily_totals"), limit(1))),
-          getDocs(query(collection(db, "viewers"), limit(100)))
-        ]);
+        addLog('SYSTEM', 'Fetching overview stats from MongoDB...', 'INFO');
         
-        // Get total viewers from latest daily record
-        let totalViewers = 0;
-        if (!dailySnapshot.empty) {
-          totalViewers = dailySnapshot.docs[0].data().total || 0;
-        }
-
-        // Quick count of free vs premium
-        let freeViewers = 0, premiumViewers = 0;
-        viewersSnapshot.forEach(doc => {
-          const data = doc.data();
-          const isFreeViewer = data.name && data.name.length > 10 && 
-            !data.name.includes('Someone at') && !data.name.includes('LinkedIn Member');
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/stats`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const stats = result.data;
           
-          if (isFreeViewer) freeViewers++;
-          else premiumViewers++;
-        });
+          // Update display
+          document.getElementById('overview-total-viewers').textContent = stats.totalViewers.toLocaleString();
+          document.getElementById('overview-free-viewers').textContent = stats.freeViewersCount.toLocaleString();
+          document.getElementById('overview-premium-viewers').textContent = stats.premiumViewersCount.toLocaleString();
+          document.getElementById('increase-today').textContent = `+${stats.totalViewers}`;
+          document.getElementById('increase-hours').textContent = `+${Math.floor(stats.totalViewers * 0.3)}`;
+          document.getElementById('increase-total').textContent = `+${stats.totalViewers}`;
 
-        // Update display quickly
-        document.getElementById('overview-total-viewers').textContent = totalViewers.toLocaleString();
-        document.getElementById('overview-free-viewers').textContent = freeViewers.toLocaleString();
-        document.getElementById('overview-premium-viewers').textContent = premiumViewers.toLocaleString();
-
-        // Simple view increases (using total viewers for now)
-        document.getElementById('increase-today').textContent = `+${totalViewers}`;
-        document.getElementById('increase-hours').textContent = `+${Math.floor(totalViewers * 0.3)}`; // Approximate for past hours
-        document.getElementById('increase-total').textContent = `+${totalViewers}`;
+          addLog('SYSTEM', 'Overview stats updated from MongoDB', 'SUCCESS');
+        } else {
+          throw new Error(result.error || 'Failed to fetch stats');
+        }
 
       } catch (error) {
         console.error('Error updating overview:', error);
+        addLog('SYSTEM', `Error updating overview: ${error.message}`, 'ERROR');
+        
+        // Set default values on error
+        document.getElementById('overview-total-viewers').textContent = '0';
+        document.getElementById('overview-free-viewers').textContent = '0';
+        document.getElementById('overview-premium-viewers').textContent = '0';
       }
     }
     
@@ -1113,6 +1805,7 @@
       constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.maxLogs = 100;
+        this.lastLogCount = 0;
       }
 
       addLog(source, message, level = 'INFO', details = null) {
@@ -1124,16 +1817,44 @@
         const logEntry = document.createElement('div');
         logEntry.className = 'log-entry';
         
-        let logText = `[${timestamp}] [${source}] ${message}`;
-        if (details) {
-          logText += ` - ${JSON.stringify(details)}`;
-        }
+        let logText = `${timestamp} [${level}] ${message}`;
         
         logEntry.innerHTML = `
-          <span class="log-timestamp">[${timestamp}]</span>
-          <span class="log-level-${level}">[${source}] ${message}</span>
+          <span class="log-timestamp">${timestamp}</span>
+          <span class="log-level-${level}">[${level}] ${message}</span>
           ${details ? `<br><span style="color: #888; margin-left: 4rem;">${JSON.stringify(details)}</span>` : ''}
         `;
+        
+        this.container.appendChild(logEntry);
+        
+        // Keep only last 100 logs
+        while (this.container.children.length > this.maxLogs) {
+          this.container.removeChild(this.container.firstChild);
+        }
+        
+        // Auto-scroll to bottom
+        this.container.scrollTop = this.container.scrollHeight;
+      }
+
+      // Add server log (raw server log format)
+      addServerLog(logLine) {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        
+        // Parse log format: "5:03:20 AM [ERROR] ❌ Error message"
+        const logPattern = /^(\d{1,2}:\d{2}:\d{2}\s(?:AM|PM))\s\[(INFO|ERROR|WARN|DEBUG|NETWORK)\]\s(.+)$/;
+        const match = logLine.match(logPattern);
+        
+        if (match) {
+          const [, timestamp, level, message] = match;
+          logEntry.innerHTML = `
+            <span class="log-timestamp">${timestamp}</span>
+            <span class="log-level-${level}">[${level}] ${message}</span>
+          `;
+        } else {
+          // Fallback for unmatched format
+          logEntry.innerHTML = `<span class="log-level-INFO">${logLine}</span>`;
+        }
         
         this.container.appendChild(logEntry);
         
@@ -1155,6 +1876,29 @@
       clear() {
         this.container.innerHTML = '';
         this.addLog('SYSTEM', 'Logs cleared', 'INFO');
+        this.lastLogCount = 0; // Reset log count
+      }
+
+      // Fetch and display server logs
+      async fetchServerLogs() {
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/logs`);
+          const logs = await response.json();
+          
+          // Only add new logs if they're different from last fetch
+          if (logs.length !== this.lastLogCount) {
+            // Clear existing logs and add all server logs
+            this.container.innerHTML = '';
+            
+            logs.reverse().forEach(logLine => {
+              this.addServerLog(logLine);
+            });
+            
+            this.lastLogCount = logs.length;
+          }
+        } catch (error) {
+          this.addLog('SYSTEM', `Failed to fetch server logs: ${error.message}`, 'ERROR');
+        }
       }
     }
 
@@ -1186,7 +1930,12 @@
         const result = await response.json();
         
         if (response.ok) {
-          statusManager.setScrapingProgress('running');
+          statusManager.setScrapingProgress('running', (finalStatus) => {
+            // Refresh data after scraping completes
+            if (finalStatus === 'completed') {
+              refreshAllData();
+            }
+          });
           addLog('SCRAPER', 'Scraping started successfully', 'SUCCESS', {
             status: result.status || 'Started'
           });
@@ -1231,26 +1980,24 @@
       }
     }
 
-    // Fetch viewers data from Firestore (optimized)
+    // Fetch viewers data from MongoDB
     async function fetchViewersData() {
       try {
-        addLog('DB', 'Fetching viewers data...', 'INFO');
+        addLog('DB', 'Fetching viewers data from MongoDB...', 'INFO');
         
         const tbody = document.getElementById('viewers-table-body');
-        tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div>Loading viewers...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="loading"><div class="spinner"></div>Loading viewers...</td></tr>';
         
-        // Use limit query for better performance
-        const viewersRef = collection(db, "viewers");
-        const q = query(viewersRef, limit(50));
-        const snapshot = await getDocs(q);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/viewers?limit=50`);
+        const result = await response.json();
         
         tbody.innerHTML = '';
         
-        if (snapshot.empty) {
+        if (!result.success || result.data.length === 0) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="5" class="empty-state">
-                <div>📭 No viewer data found</div>
+              <td colspan="4" class="empty-state">
+                <div>No viewer data found</div>
                 <small>Run the scraper to collect viewer data</small>
               </td>
             </tr>
@@ -1259,48 +2006,52 @@
           return;
         }
         
-        // Process documents directly without full conversion
-        let rowCount = 0;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          rowCount++;
-          
+        // Sort viewers by timestamp (most recent first)
+        const sortedViewers = result.data.sort((a, b) => {
+          // Use scraped_at first, then timestamp, or default to 0
+          const dateA = new Date(a.scraped_at || a.timestamp || 0);
+          const dateB = new Date(b.scraped_at || b.timestamp || 0);
+          return dateB - dateA;
+        });
+        
+        // Process viewers data
+        sortedViewers.forEach((viewer, index) => {
           // Quick name cleanup
-          let displayName = data.name || 'Anonymous';
+          let displayName = viewer.name || 'Anonymous';
           if (displayName.includes("'s profile")) {
             displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
           }
           
-          // Quick viewer type check
-          const isFreeViewer = data.name && data.name.length > 10 && 
-            !data.name.includes('Someone at') && !data.name.includes('LinkedIn Member');
-          
-          const viewerType = isFreeViewer ? 
+          // Use the database type field instead of calculating
+          const viewerType = viewer.type === 'free' ? 
             '<span class="status-badge status-success">Free</span>' : 
             '<span class="status-badge status-info">Premium</span>';
           
+          // Format timestamp - use scraped_at first, then timestamp
+          const timestampToUse = viewer.scraped_at || viewer.timestamp;
+          const formattedTimestamp = formatTimestamp(timestampToUse);
+          
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td style="width: 50px; text-align: center;"><strong>${rowCount}</strong></td>
+            <td style="width: 50px; text-align: center;"><strong>${index + 1}</strong></td>
             <td style="max-width: 200px; word-wrap: break-word;">
-              <strong>${displayName}</strong>
-              ${data.headline ? `<br><small style="color: #666;">${data.headline.substring(0, 50)}${data.headline.length > 50 ? '...' : ''}</small>` : ''}
+              <strong style="font-size: 0.875rem;">${displayName}</strong>
+              ${viewer.headline ? `<br><small style="color: #666;">${viewer.headline.substring(0, 50)}${viewer.headline.length > 50 ? '...' : ''}</small>` : ''}
             </td>
-            <td>${data.company || 'Not specified'}</td>
-            <td style="white-space: nowrap;">${data.timestamp || 'Unknown'}</td>
+            <td style="white-space: nowrap; font-size: 0.8125rem;">${formattedTimestamp}</td>
             <td>${viewerType}</td>
           `;
           tbody.appendChild(row);
         });
         
-        addLog('DB', `Viewers loaded: ${rowCount} records`, 'SUCCESS');
+        addLog('DB', `Viewers loaded: ${result.data.length} records`, 'SUCCESS');
         
       } catch (error) {
         addLog('DB', `Error fetching viewers: ${error.message}`, 'ERROR');
         const tbody = document.getElementById('viewers-table-body');
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="4" class="empty-state">
               <div style="color: #dc3545;">❌ Error loading data</div>
               <small>${error.message}</small>
             </td>
@@ -1309,90 +2060,75 @@
       }
     }
 
-    // Fetch free viewers only data from Firestore (optimized)
+    // Fetch free viewers only data from MongoDB
     async function fetchFreeViewersData() {
       try {
-        addLog('DB', 'Fetching free viewers...', 'INFO');
+        addLog('DB', 'Fetching free viewers from MongoDB...', 'INFO');
         
         const tbody = document.getElementById('free-viewers-table-body');
         tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div>Loading free viewers...</td></tr>';
         
-        // Use limit query for better performance
-        const viewersRef = collection(db, "viewers");
-        const q = query(viewersRef, limit(100)); // Get more to filter
-        const snapshot = await getDocs(q);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/free-viewers?limit=50`);
+        const result = await response.json();
         
         tbody.innerHTML = '';
         
-        if (snapshot.empty) {
+        if (!result.success || result.data.length === 0) {
           tbody.innerHTML = `
             <tr>
               <td colspan="5" class="empty-state">
-                <div>📭 No viewer data found</div>
-                <small>Run the scraper to collect viewer data</small>
+                <div>No free viewers found</div>
+                <small>Only premium/anonymous viewers detected</small>
               </td>
             </tr>
           `;
           return;
         }
         
-        // Filter free viewers directly without full array conversion
-        let rowCount = 0;
-        const seenNames = new Set();
-        
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          
-          // Quick free viewer check
-          const isFreeViewer = data.name && data.name.length > 10 && 
-            !data.name.includes('Someone at') && !data.name.includes('LinkedIn Member');
-          
-          if (isFreeViewer && rowCount < 50) { // Limit display
-            let displayName = data.name;
-            if (displayName.includes("'s profile")) {
-              displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
-            }
-            
-            if (!seenNames.has(displayName)) {
-              seenNames.add(displayName);
-              rowCount++;
-              
-              const row = document.createElement('tr');
-              row.innerHTML = `
-                <td style="width: 50px; text-align: center;"><strong>${rowCount}</strong></td>
-                <td style="max-width: 200px; word-wrap: break-word;">
-                  <strong>${displayName}</strong>
-                </td>
-                <td>${data.company || 'Not specified'}</td>
-                <td style="white-space: nowrap;">${data.timestamp || 'Unknown'}</td>
-                <td style="max-width: 300px; word-wrap: break-word;">
-                  ${data.headline ? `<small style="color: #666;">${data.headline.substring(0, 80)}${data.headline.length > 80 ? '...' : ''}</small>` : 'No headline'}
-                </td>
-              `;
-              tbody.appendChild(row);
-            }
-          }
+        // Sort free viewers by timestamp (most recent first)
+        const sortedViewers = result.data.sort((a, b) => {
+          // Use scraped_at first, then timestamp, or default to 0
+          const dateA = new Date(a.scraped_at || a.timestamp || 0);
+          const dateB = new Date(b.scraped_at || b.timestamp || 0);
+          return dateB - dateA;
         });
         
-        if (rowCount === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="5" class="empty-state">
-                <div>🔍 No free viewers found</div>
-                <small>Only premium/anonymous viewers detected</small>
-              </td>
-            </tr>
+        // Process free viewers
+        sortedViewers.forEach((viewer, index) => {
+          let displayName = viewer.name || 'Anonymous';
+          if (displayName.includes("'s profile")) {
+            displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
+          }
+          
+          // Format timestamp - use istTimestamp first, then scraped_at, then timestamp
+          const timestampToUse = viewer.istTimestamp || viewer.scraped_at || viewer.timestamp;
+          const formattedTimestamp = formatTimestamp(timestampToUse);
+          const viewedTime = viewer.viewedTime || 'Unknown';
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="width: 50px; text-align: center;"><strong>${index + 1}</strong></td>
+            <td style="max-width: 200px; word-wrap: break-word;">
+              <strong style="font-size: 0.875rem;">${displayName}</strong>
+              ${viewer.connectionType ? `<br><small style="color: #0066cc; font-weight: 500;">${viewer.connectionType} connection</small>` : ''}
+            </td>
+            <td style="white-space: nowrap; font-size: 0.8125rem;">${formattedTimestamp}</td>
+            <td style="white-space: nowrap; font-size: 0.8125rem; color: #0066cc; font-weight: 500;">${viewedTime}</td>
+            <td style="max-width: 300px; word-wrap: break-word;">
+              ${viewer.headline ? `<small style="color: #666;">${viewer.headline.substring(0, 80)}${viewer.headline.length > 80 ? '...' : ''}</small>` : 'No headline'}
+            </td>
           `;
-        }
+          tbody.appendChild(row);
+        });
         
-        addLog('DB', `Free viewers loaded: ${rowCount} unique viewers`, 'SUCCESS');
+        addLog('DB', `Free viewers loaded: ${result.data.length} records`, 'SUCCESS');
         
       } catch (error) {
         addLog('DB', `Error fetching free viewers: ${error.message}`, 'ERROR');
         const tbody = document.getElementById('free-viewers-table-body');
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="4" class="empty-state">
               <div style="color: #dc3545;">❌ Error loading data</div>
               <small>${error.message}</small>
             </td>
@@ -1401,46 +2137,41 @@
       }
     }
 
-    // Update total viewers stat (optimized)
+    // Update total viewers stat (using MongoDB API)
     async function updateTotalViewersStat() {
       try {
-        const dailyTotalsRef = collection(db, "daily_totals");
-        const q = query(dailyTotalsRef, limit(1)); // Just get one recent record
-        const snapshot = await getDocs(q);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/stats`);
+        const result = await response.json();
         
-        let totalViewers = 0;
-        if (!snapshot.empty) {
-          const doc = snapshot.docs[0];
-          totalViewers = doc.data().total || 0;
+        if (result.success) {
+          document.getElementById('total-viewers-stat').textContent = result.data.totalViewers.toLocaleString();
+        } else {
+          document.getElementById('total-viewers-stat').textContent = '0';
         }
-        
-        document.getElementById('total-viewers-stat').textContent = totalViewers.toLocaleString();
         
       } catch (error) {
         document.getElementById('total-viewers-stat').textContent = '0';
       }
     }
 
-    // Fetch daily totals data (optimized)
+    // Fetch daily totals data from MongoDB
     async function fetchDailyTotalsData() {
       try {
-        addLog('DB', 'Fetching daily totals...', 'INFO');
+        addLog('DB', 'Fetching daily totals from MongoDB...', 'INFO');
         
         const tbody = document.getElementById('daily-totals-table-body');
         tbody.innerHTML = '<tr><td colspan="4" class="loading"><div class="spinner"></div>Loading daily totals...</td></tr>';
         
-        // Use limit query for better performance
-        const dailyTotalsRef = collection(db, "daily_totals");
-        const q = query(dailyTotalsRef, limit(30));
-        const snapshot = await getDocs(q);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/daily-totals?limit=30`);
+        const result = await response.json();
         
         tbody.innerHTML = '';
         
-        if (snapshot.empty) {
+        if (!result.success || result.data.length === 0) {
           tbody.innerHTML = `
             <tr>
               <td colspan="4" class="empty-state">
-                <div>📅 No daily records found</div>
+                <div>No daily records found</div>
                 <small>Data will appear after scraping</small>
               </td>
             </tr>
@@ -1448,34 +2179,49 @@
           return;
         }
         
-        // Process documents directly
-        let rowCount = 0;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          rowCount++;
-          
-          // Simple status based on total
-          let statusBadge = '<span class="status-badge status-info">Normal</span>';
-          if (data.total > 1000) {
-            statusBadge = '<span class="status-badge status-success">High Activity</span>';
-          } else if (data.total === 0) {
-            statusBadge = '<span class="status-badge status-error">No Views</span>';
+        // Sort daily totals by date (most recent first)
+        const sortedData = result.data.sort((a, b) => {
+          const dateA = new Date(a.date || 0);
+          const dateB = new Date(b.date || 0);
+          return dateB - dateA;
+        });
+        
+        // Process daily totals
+        sortedData.forEach((record, index) => {
+          // Format increment display
+          let incrementDisplay = '0';
+          if (record.total > 0) {
+            incrementDisplay = `+${record.total}`;
+          } else if (record.total < 0) {
+            incrementDisplay = `${record.total}`;
           }
+          
+          // Add color coding for increment
+          let incrementClass = 'text-gray';
+          if (record.total > 0) {
+            incrementClass = 'text-success';
+          } else if (record.total < 0) {
+            incrementClass = 'text-danger';
+          }
+          
+          // Format date - use istTimestamp first, then date
+          const dateToUse = record.istTimestamp || record.date;
+          const formattedDate = formatTimestamp(dateToUse);
           
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td style="width: 50px; text-align: center;"><strong>${rowCount}</strong></td>
-            <td>${data.date || 'Unknown'}</td>
-            <td><strong>${data.total || 0}</strong></td>
-            <td>${statusBadge}</td>
+            <td style="width: 50px; text-align: center;"><strong>${index + 1}</strong></td>
+            <td style="font-size: 0.8125rem;">${formattedDate}</td>
+            <td><strong>${record.total || 0}</strong></td>
+            <td><span class="${incrementClass}" style="font-weight: bold;">${incrementDisplay}</span></td>
           `;
           tbody.appendChild(row);
         });
         
         // Update stats
-        document.getElementById('total-daily-records-stat').textContent = snapshot.size;
+        document.getElementById('total-daily-records-stat').textContent = result.data.length;
         
-        addLog('DB', `Daily totals loaded: ${rowCount} records`, 'SUCCESS');
+        addLog('DB', `Daily totals loaded: ${result.data.length} records`, 'SUCCESS');
         
       } catch (error) {
         addLog('DB', `Error fetching daily totals: ${error.message}`, 'ERROR');
@@ -1491,26 +2237,77 @@
       }
     }
 
-    // Fetch screenshots data (optimized)
+    // Utility function to format timestamps to New Delhi time
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return 'Unknown';
+      
+      try {
+        let date;
+        
+        // Handle different timestamp formats
+        if (typeof timestamp === 'string') {
+          // If it's already a readable format like "View 6 hour ago", return as is
+          if (timestamp.includes('hour ago') || timestamp.includes('minute ago') || timestamp.includes('day ago')) {
+            return timestamp;
+          }
+          
+          // Try to parse as ISO string or regular date string
+          date = new Date(timestamp);
+        } else if (typeof timestamp === 'number') {
+          // Check for invalid timestamps (0 or very small numbers)
+          if (timestamp === 0 || timestamp < 946684800000) { // Before year 2000
+            return 'Unknown';
+          }
+          date = new Date(timestamp);
+        } else if (timestamp instanceof Date) {
+          date = timestamp;
+        } else {
+          return 'Unknown';
+        }
+        
+        // Check if date is valid and not in the year 1970
+        if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
+          return 'Unknown';
+        }
+        
+        // Format to New Delhi time (IST)
+        const options = {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        };
+        
+        const formatted = date.toLocaleString('en-IN', options);
+        return formatted.replace(',', '');
+      } catch (error) {
+        // If all else fails, return Unknown for invalid dates
+        return 'Unknown';
+      }
+    }
+
+    // Fetch screenshots data from MongoDB
     async function fetchScreenshotsData() {
       try {
-        addLog('DB', 'Fetching screenshots...', 'INFO');
+        addLog('DB', 'Fetching screenshots from MongoDB...', 'INFO');
         
         const tbody = document.getElementById('screenshots-table-body');
-        tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div>Loading screenshots...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="loading"><div class="spinner"></div>Loading screenshots...</td></tr>';
         
-        // Use limit query for better performance
-        const screenshotsRef = collection(db, "screenshots");
-        const q = query(screenshotsRef, limit(20));
-        const snapshot = await getDocs(q);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/screenshots?limit=20`);
+        const result = await response.json();
         
         tbody.innerHTML = '';
         
-        if (snapshot.empty) {
+        if (!result.success || result.data.length === 0) {
           tbody.innerHTML = `
             <tr>
-              <td colspan="5" class="empty-state">
-                <div>📸 No screenshots found</div>
+              <td colspan="6" class="empty-state">
+                <div>No screenshots found</div>
                 <small>Screenshots will appear after scraping</small>
               </td>
             </tr>
@@ -1518,16 +2315,19 @@
           return;
         }
         
-        // Process documents directly
-        let rowCount = 0;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          rowCount++;
-          
+        // Sort screenshots by timestamp (most recent first)
+        const sortedScreenshots = result.data.sort((a, b) => {
+          const dateA = new Date(a.timestamp || a.istTimestamp || 0);
+          const dateB = new Date(b.timestamp || b.istTimestamp || 0);
+          return dateB - dateA;
+        });
+        
+        // Process screenshots
+        sortedScreenshots.forEach((screenshot, index) => {
           // Format file size quickly
           let fileSize = 'Unknown';
-          if (data.size) {
-            const bytes = parseInt(data.size);
+          if (screenshot.size) {
+            const bytes = parseInt(screenshot.size);
             if (bytes < 1048576) { // Less than 1MB
               fileSize = Math.round(bytes / 1024) + ' KB';
             } else {
@@ -1535,38 +2335,107 @@
             }
           }
           
-          // Simple thumbnail
+          // Simple thumbnail with correct path
           let thumbnail = '<div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #666;">📸</div>';
-          if (data.localPath) {
-            const imagePath = data.localPath.startsWith('/') ? data.localPath.substring(1) : data.localPath;
-            thumbnail = `<img src="${imagePath}" class="screenshot-thumbnail" alt="Screenshot" onclick="window.open('${imagePath}', '_blank')" onerror="this.style.display='none';">`;
+          if (screenshot.localPath || screenshot.filename) {
+            // Use filename for the screenshot path since they're in root directory
+            const imagePath = `/screenshots/${screenshot.filename || screenshot.localPath}`;
+            thumbnail = `<img src="${imagePath}" class="screenshot-thumbnail" alt="Screenshot" onclick="window.open('${imagePath}', '_blank')" onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=&quot;width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #666;&quot;>❌</div>';">`;
+          }
+          
+          // Get trigger type display
+          const triggerType = screenshot.triggerType === 'manual' ? 'Manual' : 'Automatic';
+          const triggerClass = screenshot.triggerType === 'manual' ? 'style="color: #f39c12; font-weight: 600;"' : 'style="color: #28a745; font-weight: 600;"';
+          
+          // Format timestamp - prioritize istTimestamp, then timestamp
+          let formattedTimestamp = 'N/A';
+          const timestampToUse = screenshot.istTimestamp || screenshot.timestamp || screenshot.created_at;
+          
+          if (timestampToUse) {
+            try {
+              // If it's already in the correct format, return as is
+              if (typeof timestampToUse === 'string' && timestampToUse.includes('/') && (timestampToUse.includes('am') || timestampToUse.includes('pm'))) {
+                formattedTimestamp = timestampToUse;
+              } else {
+                let date;
+                if (typeof timestampToUse === 'string') {
+                  date = new Date(timestampToUse);
+                } else if (timestampToUse instanceof Date) {
+                  date = timestampToUse;
+                } else {
+                  date = new Date();
+                }
+                
+                if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
+                  // Use current time as fallback
+                  date = new Date();
+                }
+                
+                // Format to IST
+                formattedTimestamp = date.toLocaleString('en-IN', {
+                  timeZone: 'Asia/Kolkata',
+                  day: 'numeric',
+                  month: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: true
+                });
+              }
+            } catch (error) {
+              // Use current time as fallback
+              formattedTimestamp = new Date().toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                day: 'numeric',
+                month: 'numeric', 
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+              });
+            }
+          } else {
+            // No timestamp at all, use current time
+            formattedTimestamp = new Date().toLocaleString('en-IN', {
+              timeZone: 'Asia/Kolkata',
+              day: 'numeric',
+              month: 'numeric',
+              year: 'numeric', 
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            });
           }
           
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td style="width: 50px; text-align: center;"><strong>${rowCount}</strong></td>
+            <td style="width: 50px; text-align: center;"><strong>${index + 1}</strong></td>
             <td>${thumbnail}</td>
-            <td style="max-width: 200px; word-wrap: break-word;">
-              <strong>${data.filename || 'Unknown'}</strong>
-              ${data.totalViewers ? `<br><small style="color: #666;">${data.totalViewers} viewers</small>` : ''}
+            <td style="max-width: 150px; word-wrap: break-word; overflow: hidden;">
+              <strong style="font-size: 0.875rem;">${screenshot.filename || 'Unknown'}</strong>
+              ${screenshot.totalViewers ? `<br><small style="color: #666;">${screenshot.totalViewers} viewers</small>` : ''}
             </td>
-            <td style="white-space: nowrap;">${data.timestamp || data.istTimestamp || 'Unknown'}</td>
-            <td>${fileSize}</td>
+            <td style="white-space: nowrap; font-size: 0.8125rem;">${formattedTimestamp}</td>
+            <td ${triggerClass}>${triggerType}</td>
+            <td style="font-size: 0.8125rem;">${fileSize}</td>
           `;
           tbody.appendChild(row);
         });
         
         // Update stats
-        document.getElementById('total-screenshots-stat').textContent = snapshot.size;
+        document.getElementById('total-screenshots-stat').textContent = result.data.length;
         
-        addLog('DB', `Screenshots loaded: ${rowCount} records`, 'SUCCESS');
+        addLog('DB', `Screenshots loaded: ${result.data.length} records`, 'SUCCESS');
         
       } catch (error) {
         addLog('DB', `Error fetching screenshots: ${error.message}`, 'ERROR');
         const tbody = document.getElementById('screenshots-table-body');
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="6" class="empty-state">
               <div style="color: #dc3545;">❌ Error loading data</div>
               <small>${error.message}</small>
             </td>
@@ -1578,15 +2447,20 @@
     // Auto-refresh logs from backend
     async function fetchBackendLogs() {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/logs`);
+        const response = await fetch(`${BACKEND_URL}/api/logs?limit=100`);
         if (response.ok) {
-          const data = await response.json();
-          if (data.logs && data.logs.length > 0) {
-            // Clear existing logs and add backend logs
-            const container = document.getElementById('logs-container');
-            container.innerHTML = '';
-            
-            data.logs.reverse().forEach(logEntry => {
+          const logsData = await response.json();
+          const container = document.getElementById('logs-container');
+          
+          // Clear existing logs
+          container.innerHTML = '';
+          
+          // Handle both array and object responses
+          const logs = Array.isArray(logsData) ? logsData : (logsData.logs || []);
+          
+          if (logs.length > 0) {
+            // Show logs in reverse order (most recent first)
+            logs.reverse().forEach(logEntry => {
               const div = document.createElement('div');
               div.className = 'log-entry';
               
@@ -1605,7 +2479,7 @@
               container.appendChild(div);
             });
             
-            // Auto-scroll to bottom
+            // Auto-scroll to bottom to show most recent logs
             container.scrollTop = container.scrollHeight;
           }
         }
@@ -1618,31 +2492,55 @@
       }
     }
 
-    // Initialize data loading (optimized)
+    // Initialize data loading (using MongoDB)
     async function initializeAnalytics() {
-      addLog('SYSTEM', 'Starting analytics...', 'INFO');
+      addLog('SYSTEM', 'Starting analytics with MongoDB...', 'INFO');
       statusManager.updateSystemStatus('warning', 'System: Loading...');
       statusManager.updateProgress(20, 'Initializing...');
       
       try {
-        // Load data in sequence to avoid overwhelming Firestore
+        // Check MongoDB connection first
+        const mongoResponse = await fetch(`${BACKEND_URL}/api/mongodb/status`);
+        const mongoStatus = await mongoResponse.json();
+        
+        if (!mongoStatus.connected) {
+          addLog('SYSTEM', 'MongoDB not connected - check server logs', 'WARNING');
+          addLog('SYSTEM', 'Install MongoDB: brew install mongodb-community', 'INFO');
+          addLog('SYSTEM', 'Or use MongoDB Atlas cloud database', 'INFO');
+          statusManager.updateSystemStatus('warning', 'System: MongoDB offline');
+          statusManager.updateProgress(100, 'Ready (MongoDB offline)');
+          return;
+        }
+        
+        addLog('SYSTEM', 'MongoDB connection verified', 'SUCCESS');
+        
         statusManager.updateProgress(40, 'Loading overview...');
         await updateOverviewStats();
         
-        statusManager.updateProgress(60, 'Loading tables...');
-        // Load tables one by one instead of all at once
+        statusManager.updateProgress(60, 'Loading viewers data...');
         await fetchViewersData();
+        
+        statusManager.updateProgress(65, 'Loading free viewers...');
         await fetchFreeViewersData();
+        
+        statusManager.updateProgress(70, 'Loading daily totals...');
         await fetchDailyTotalsData();
+        
+        statusManager.updateProgress(80, 'Loading screenshots...');
         await fetchScreenshotsData();
         
-        // Update total viewers stat
+        statusManager.updateProgress(85, 'Loading scraping activity...');
+        await refreshScrapingActivity();
+        
+        statusManager.updateProgress(90, 'Loading stats...');
         await updateTotalViewersStat();
         
-        statusManager.updateSystemStatus('active', 'System: Ready');
+        addLog('SYSTEM', 'MongoDB connected - no quota limits!', 'SUCCESS');
+        
+        statusManager.updateSystemStatus('active', 'System: Ready (MongoDB)');
         statusManager.updateProgress(100, 'Analytics ready');
         
-        addLog('SYSTEM', 'Analytics loaded successfully', 'SUCCESS');
+        addLog('SYSTEM', 'Analytics loaded successfully with MongoDB', 'SUCCESS');
         
         // Reset progress after delay
         setTimeout(() => {
@@ -1652,27 +2550,46 @@
       } catch (error) {
         statusManager.updateSystemStatus('inactive', 'System: Error');
         addLog('SYSTEM', `Error loading analytics: ${error.message}`, 'ERROR');
+        
+        if (error.message.includes('MongoDB') || error.message.includes('not connected')) {
+          addLog('SYSTEM', 'MongoDB connection issues - check server logs', 'WARNING');
+          addLog('SYSTEM', 'Setup MongoDB: ./setup-mongodb.sh', 'INFO');
+        }
       }
       
       // Check server status
       await checkServerStatus();
     }
 
-    // Auto-refresh functionality (optimized)
+    // Manual data refresh function (no cache to clear)
+    function refreshAllData() {
+      addLog('SYSTEM', 'Refreshing all data from MongoDB...', 'INFO');
+      
+      // Refresh all sections
+      updateOverviewStats();
+      fetchViewersData();
+      fetchFreeViewersData();
+      fetchDailyTotalsData();
+      fetchScreenshotsData();
+    }
+
+    // Auto-refresh functionality (optimized for MongoDB)
     function startAutoRefresh() {
-      // Reduced refresh frequency to avoid overwhelming Firestore
+      // Regular refresh since no quota limits with MongoDB
       setInterval(() => {
-        addLog('SYSTEM', 'Auto-refreshing...', 'INFO');
-        updateOverviewStats(); // Only refresh overview stats automatically
-      }, 300000); // Every 5 minutes instead of 2 minutes
+        addLog('SYSTEM', 'Auto-refreshing overview...', 'INFO');
+        updateOverviewStats();
+        // Refresh scraping activity every 5 minutes
+        refreshScrapingActivity();
+      }, 300000); // Every 5 minutes
       
       // Check server status every minute
       setInterval(() => {
         checkServerStatus();
       }, 60000);
       
-      // Reduced log fetch frequency
-      setInterval(fetchBackendLogs, 10000); // Every 10 seconds instead of 5
+      // Fetch backend logs
+      setInterval(fetchBackendLogs, 10000); // Every 10 seconds
       
       // Initial log fetch
       setTimeout(fetchBackendLogs, 5000);
@@ -1683,7 +2600,17 @@
       // Reduce initial delay for faster loading
       setTimeout(() => {
         initializeAnalytics();
+        initializeChart(); // Initialize the chart
         startAutoRefresh();
+        
+        // Start server log fetching
+        liveLogger.fetchServerLogs();
+        
+        // Fetch server logs every 3 seconds
+        setInterval(() => {
+          liveLogger.fetchServerLogs();
+        }, 3000);
+        
       }, 1000); // Reduced from 2000ms to 1000ms
     });
 
@@ -1700,37 +2627,28 @@
     window.statusManager = statusManager;
     window.clearLogs = clearLogs;
     window.addLog = addLog;
+    window.refreshAllData = refreshAllData;
 
-    // Update Past Hours Data function
+    // Update Past Hours Data function (using MongoDB API)
     async function updatePastHoursData() {
       const selectedHours = document.getElementById('hours-dropdown').value;
       try {
-        // Get viewers data and calculate for selected hours
-        const viewersRef = collection(db, "viewers");
-        const snapshot = await getDocs(query(viewersRef, limit(200)));
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/past-hours?hours=${selectedHours}`);
+        const result = await response.json();
         
-        let pastHoursCount = 0;
-        const now = new Date();
-        const hoursAgo = new Date(now.getTime() - (selectedHours * 60 * 60 * 1000));
-        
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.scraped_at && data.scraped_at.toDate) {
-            const scrapedDate = data.scraped_at.toDate();
-            if (scrapedDate >= hoursAgo) {
-              pastHoursCount++;
-            }
-          }
-        });
-        
-        document.getElementById('increase-hours').textContent = `+${pastHoursCount}`;
-        addLog('SYSTEM', `Updated past ${selectedHours} hours data: +${pastHoursCount}`, 'INFO');
+        if (result.success) {
+          document.getElementById('increase-hours').textContent = `+${result.data.count}`;
+          addLog('SYSTEM', `Updated past ${selectedHours} hours data: +${result.data.count}`, 'INFO');
+        } else {
+          throw new Error(result.error || 'Failed to fetch past hours data');
+        }
       } catch (error) {
         console.error('Error updating past hours data:', error);
         // Fallback to approximate calculation
         const totalViewers = parseInt(document.getElementById('overview-total-viewers').textContent.replace(/,/g, '')) || 0;
         const approximateCount = Math.floor(totalViewers * (selectedHours / 24) * 0.3);
         document.getElementById('increase-hours').textContent = `+${approximateCount}`;
+        addLog('SYSTEM', `Using approximate data for past ${selectedHours} hours`, 'WARNING');
       }
     }
 
@@ -1789,6 +2707,406 @@
     window.updatePastHoursData = updatePastHoursData;
     window.toggleRandomIntervals = toggleRandomIntervals;
     window.updateInterval = updateInterval;
+
+    // Chart functionality
+    let viewerGrowthChart = null;
+    let currentChartRange = '24h';
+
+    // Initialize chart
+    function initializeChart() {
+      const ctx = document.getElementById('viewerGrowthChart').getContext('2d');
+      
+      viewerGrowthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Total Viewers',
+            data: [],
+            borderColor: '#37352f',
+            backgroundColor: 'rgba(55, 53, 47, 0.1)',
+            fill: true,
+            tension: 0.1,
+            pointRadius: 3,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Total Viewers: ${context.parsed.y.toLocaleString()}`;
+                },
+                afterLabel: function(context) {
+                  // Show viewer increase if available
+                  const dataIndex = context.dataIndex;
+                  const dataset = context.dataset;
+                  if (dataset.viewerIncreases && dataset.viewerIncreases[dataIndex] > 0) {
+                    return `Increase: +${dataset.viewerIncreases[dataIndex]}`;
+                  }
+                  return '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                displayFormats: {
+                  hour: 'MMM dd, HH:mm',
+                  day: 'MMM dd',
+                  week: 'MMM dd',
+                  month: 'MMM yyyy'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Time'
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Total Viewers'
+              },
+              ticks: {
+                callback: function(value) {
+                  return value.toLocaleString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Fetch growth chart data
+    async function fetchGrowthChartData() {
+      try {
+        addLog('CHART', 'Fetching growth chart data...', 'INFO');
+        
+        let limit = 24; // Default 24 hours
+        if (currentChartRange === '7d') limit = 168; // 7 days
+        else if (currentChartRange === '30d') limit = 720; // 30 days
+        else if (currentChartRange === 'all') limit = 8760; // 1 year
+        
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/hourly-stats?limit=${limit}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch chart data');
+        }
+        
+        const data = result.data || [];
+        
+        if (data.length === 0) {
+          addLog('CHART', 'No hourly data available yet', 'WARN');
+          return;
+        }
+        
+        // Process data for chart
+        const labels = data.map(stat => new Date(stat.timestamp));
+        let viewerCounts = data.map(stat => stat.totalViewers);
+        const viewerIncreases = data.map(stat => stat.viewerIncrease || 0);
+        
+        // Ensure chart starts from at least 1437 viewers
+        const BASE_VIEWERS = 1437;
+        const minViewers = Math.min(...viewerCounts);
+        if (minViewers < BASE_VIEWERS) {
+          const offset = BASE_VIEWERS - minViewers;
+          viewerCounts = viewerCounts.map(count => count + offset);
+        }
+        
+        // Update chart
+        viewerGrowthChart.data.labels = labels;
+        viewerGrowthChart.data.datasets[0].data = viewerCounts;
+        viewerGrowthChart.data.datasets[0].viewerIncreases = viewerIncreases;
+        
+        // Update time format based on range
+        let timeFormat = 'hour';
+        if (currentChartRange === '7d') timeFormat = 'day';
+        else if (currentChartRange === '30d' || currentChartRange === 'all') timeFormat = 'week';
+        
+        viewerGrowthChart.options.scales.x.time.unit = timeFormat;
+        viewerGrowthChart.update();
+        
+        addLog('CHART', `Chart updated with ${data.length} data points`, 'SUCCESS');
+        
+      } catch (error) {
+        addLog('CHART', `Error fetching chart data: ${error.message}`, 'ERROR');
+      }
+    }
+
+    // Set chart range
+    function setChartRange(range) {
+      currentChartRange = range;
+      
+      // Update active button
+      document.querySelectorAll('.chart-control-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-range') === range) {
+          btn.classList.add('active');
+        }
+      });
+      
+      // Fetch new data
+      fetchGrowthChartData();
+    }
+
+    // Make chart functions globally available
+    window.fetchGrowthChartData = fetchGrowthChartData;
+    window.setChartRange = setChartRange;
+
+    // Scraping schedule management
+    async function updateScrapingSchedule() {
+      const scheduleSelect = document.getElementById('scraping-schedule');
+      const statusSpan = document.getElementById('schedule-status');
+      const schedule = scheduleSelect.value;
+      
+      try {
+        statusSpan.textContent = '⏳ Updating...';
+        statusSpan.style.color = '#ffc107';
+        
+        const response = await fetch(`${BACKEND_URL}/api/update-schedule`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ schedule })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          const scheduleText = scheduleSelect.options[scheduleSelect.selectedIndex].text;
+          statusSpan.textContent = `✅ Active (${scheduleText})`;
+          statusSpan.style.color = '#28a745';
+          addLog('SCHEDULE', `Scraping schedule updated: ${scheduleText}`, 'SUCCESS');
+          
+          // Refresh scraping activity to update "Next Scheduled" time
+          refreshScrapingActivity();
+        } else {
+          throw new Error(result.error || 'Failed to update schedule');
+        }
+        
+      } catch (error) {
+        statusSpan.textContent = '❌ Update Failed';
+        statusSpan.style.color = '#dc3545';
+        addLog('SCHEDULE', `Failed to update schedule: ${error.message}`, 'ERROR');
+        
+        // Reset select to previous value (hourly)
+        scheduleSelect.value = '0 * * * *';
+      }
+    }
+
+    // Make schedule function globally available
+    window.updateScrapingSchedule = updateScrapingSchedule;
+
+    // Chart section toggle functionality
+    function toggleChartSection() {
+      const chartSection = document.getElementById('chart-section');
+      const toggleIcon = document.querySelector('.toggle-icon');
+      
+      if (chartSection.classList.contains('collapsed')) {
+        chartSection.classList.remove('collapsed');
+        toggleIcon.classList.remove('collapsed');
+        
+        // Initialize chart if it doesn't exist yet
+        if (!viewerGrowthChart) {
+          initializeChart();
+          fetchGrowthChartData();
+        }
+      } else {
+        chartSection.classList.add('collapsed');
+        toggleIcon.classList.add('collapsed');
+      }
+    }
+
+    // Data Management section toggle functionality
+    function toggleDataManagementSection() {
+      const dataSection = document.getElementById('data-management-section');
+      const toggleIcon = document.querySelector('#data-management-section').previousElementSibling.querySelector('.toggle-icon');
+      
+      if (dataSection.classList.contains('collapsed')) {
+        dataSection.classList.remove('collapsed');
+        toggleIcon.classList.remove('collapsed');
+      } else {
+        dataSection.classList.add('collapsed');
+        toggleIcon.classList.add('collapsed');
+      }
+    }
+
+    // Scraping activity functions
+    async function refreshScrapingActivity() {
+      try {
+        addLog('ACTIVITY', 'Refreshing scraping activity...', 'INFO');
+        
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/last-scraping-log`);
+        const result = await response.json();
+        
+        if (result.success) {
+          const { lastLog, nextScheduled } = result.data;
+          
+          // Get DOM elements for all fields
+          const lastTimeElement = document.getElementById('last-scraping-time');
+          const triggerTypeElement = document.getElementById('last-trigger-type');
+          const successStatusElement = document.getElementById('scraping-success-status');
+          const screenshotStatusElement = document.getElementById('screenshot-status');
+          const nextScheduledElement = document.getElementById('next-scheduled-time');
+          const durationElement = document.getElementById('scraping-duration');
+          
+          if (lastLog) {
+            // Last scraping time
+            lastTimeElement.textContent = lastLog.istTimestamp || formatTimestamp(lastLog.timestamp) || 'Unknown';
+            lastTimeElement.className = 'activity-value success';
+            
+            // Trigger type (without emojis)
+            triggerTypeElement.textContent = lastLog.triggerType === 'manual' ? 'Manual' : 'Automatic';
+            triggerTypeElement.className = lastLog.triggerType === 'manual' ? 'activity-value warning' : 'activity-value success';
+            
+            // Success status
+            const isSuccessful = lastLog.successful !== undefined ? lastLog.successful : (lastLog.status === 'completed');
+            successStatusElement.textContent = isSuccessful ? 'Success' : 'Failed';
+            successStatusElement.className = isSuccessful ? 'activity-value success' : 'activity-value error';
+            
+            // Screenshot status
+            const screenshotTaken = lastLog.screenshotTaken || false;
+            screenshotStatusElement.textContent = screenshotTaken ? 'Yes' : 'No';
+            screenshotStatusElement.className = screenshotTaken ? 'activity-value success' : 'activity-value warning';
+            
+            // Duration
+            const duration = lastLog.duration || 0;
+            durationElement.textContent = duration > 0 ? `${duration}s` : 'Unknown';
+            durationElement.className = 'activity-value';
+            
+          } else {
+            lastTimeElement.textContent = 'No scraping logs found';
+            lastTimeElement.className = 'activity-value';
+            triggerTypeElement.textContent = 'N/A';
+            triggerTypeElement.className = 'activity-value';
+            successStatusElement.textContent = 'Waiting for first scrape';
+            successStatusElement.className = 'activity-value warning';
+            screenshotStatusElement.textContent = 'N/A';
+            screenshotStatusElement.className = 'activity-value';
+            durationElement.textContent = 'N/A';
+            durationElement.className = 'activity-value';
+          }
+          
+          // Update next scheduled time based on current schedule
+          updateNextScheduledTime(nextScheduledElement);
+          
+          addLog('ACTIVITY', 'Scraping activity refreshed successfully', 'SUCCESS');
+        } else {
+          throw new Error(result.error || 'Failed to fetch scraping activity');
+        }
+        
+      } catch (error) {
+        addLog('ACTIVITY', `Error refreshing activity: ${error.message}`, 'ERROR');
+      }
+    }
+    
+    // Function to update next scheduled time based on current schedule
+    function updateNextScheduledTime(element) {
+      const scheduleSelect = document.getElementById('scraping-schedule');
+      const currentSchedule = scheduleSelect ? scheduleSelect.value : 'hourly';
+      
+      const now = new Date();
+      let nextTime;
+      
+      switch (currentSchedule) {
+        case 'hourly':
+          nextTime = new Date(now);
+          nextTime.setHours(nextTime.getHours() + 1, 0, 0, 0);
+          break;
+        case 'daily':
+          nextTime = new Date(now);
+          nextTime.setDate(nextTime.getDate() + 1);
+          nextTime.setHours(0, 0, 0, 0);
+          break;
+        case 'weekly':
+          nextTime = new Date(now);
+          const daysUntilNextWeek = 7 - nextTime.getDay();
+          nextTime.setDate(nextTime.getDate() + daysUntilNextWeek);
+          nextTime.setHours(0, 0, 0, 0);
+          break;
+        case 'disabled':
+          element.textContent = 'Disabled';
+          element.className = 'activity-value warning';
+          return;
+        default:
+          nextTime = new Date(now);
+          nextTime.setHours(nextTime.getHours() + 1, 0, 0, 0);
+      }
+      
+      const istTime = nextTime.toLocaleString("en-IN", { 
+        timeZone: "Asia/Kolkata",
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      element.textContent = istTime;
+      element.className = 'activity-value';
+    }
+
+    // Export all viewers data as CSV
+    async function exportAllData() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/viewers?limit=1000`);
+        const result = await response.json();
+
+        if (!result.success || result.data.length === 0) {
+          alert('No data available to export');
+          return;
+        }
+
+        let csv = 'Name,Headline,Company,IST Timestamp,Viewed Time,Type,Scraped At\n';
+        
+        result.data.forEach(viewer => {
+          const name = (viewer.name || '').replace(/"/g, '""');
+          const headline = (viewer.headline || '').replace(/"/g, '""');
+          const company = (viewer.company || '').replace(/"/g, '""');
+          const istTimestamp = viewer.istTimestamp || viewer.timestamp || '';
+          const viewedTime = viewer.viewedTime || 'Unknown';
+          const type = viewer.type || 'free';
+          const scrapedAt = viewer.scraped_at || '';
+          
+          csv += `"${name}","${headline}","${company}","${istTimestamp}","${viewedTime}","${type}","${scrapedAt}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `linkedin_viewers_data_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('Error exporting data: ' + error.message);
+      }
+    }
+
+    // Make new functions globally available
+    window.toggleChartSection = toggleChartSection;
+    window.toggleDataManagementSection = toggleDataManagementSection;
+    window.refreshScrapingActivity = refreshScrapingActivity;
+    window.exportAllData = exportAllData;
   </script>
 </body>
 </html>

@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Viewers Data - LinkrtGOD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+      background: #fafafa;
+      min-height: 100vh;
+      color: #1a1a1a;
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+      font-weight: 400;
+      letter-spacing: -0.011em;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .header {
+      text-align: left;
+      margin-bottom: 2rem;
+      padding: 0;
+      background: none;
+      box-shadow: none;
+      border-radius: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .back-btn {
+      padding: 0.75rem 1.5rem;
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: #333;
+      transform: translateY(-1px);
+    }
+
+    .stats-bar {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #0066cc;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .controls {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 300px;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: white;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      color: #374151;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+
+    .btn.primary {
+      background: #1a1a1a;
+      color: white;
+      border-color: #1a1a1a;
+    }
+
+    .btn.primary:hover {
+      background: #333;
+    }
+
+    .btn.success {
+      background: #059669;
+      color: white;
+      border-color: #059669;
+    }
+
+    .btn.success:hover {
+      background: #047857;
+    }
+
+    .data-table-container {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    }
+
+    .table-header {
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .table-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .table-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-switch.active {
+      background: #1a1a1a;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch.active .toggle-slider {
+      transform: translateX(20px);
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      transition: all 0.3s ease;
+      max-height: 80vh;
+    }
+
+    .table-wrapper.static {
+      overflow-x: visible;
+      width: 100%;
+      max-height: none;
+    }
+
+    .data-table {
+      width: 100%;
+      min-width: 700px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.8125rem;
+    }
+
+    .data-table.static {
+      min-width: 100%;
+      table-layout: fixed;
+    }
+
+    .data-table th {
+      background: #f9fafb;
+      color: #374151;
+      font-weight: 600;
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      font-size: 0.8125rem;
+    }
+
+    .data-table th:hover {
+      background: #f3f4f6;
+    }
+
+    .data-table th.sortable {
+      position: relative;
+      padding-right: 1.5rem;
+    }
+
+    .data-table th.sortable::after {
+      content: '↕';
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.3;
+      font-size: 0.75rem;
+    }
+
+    .data-table th.sort-asc::after {
+      content: '↑';
+      opacity: 1;
+      color: #0066cc;
+    }
+
+    .data-table th.sort-desc::after {
+      content: '↓';
+      opacity: 1;
+      color: #0066cc;
+    }
+
+    .data-table td {
+      padding: 0.625rem 0.75rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+      transition: all 0.2s ease;
+      font-size: 0.8125rem;
+    }
+
+    .data-table tr {
+      cursor: pointer;
+    }
+
+    .data-table tr:hover {
+      background: #f9fafb;
+    }
+
+    .data-table tr:hover td {
+      background: transparent;
+    }
+
+    .viewer-name {
+      font-weight: 600;
+      color: #1a1a1a;
+      max-width: 200px;
+      word-wrap: break-word;
+      line-height: 1.3;
+    }
+
+    .viewer-headline {
+      color: #6b7280;
+      font-size: 0.75rem;
+      max-width: 250px;
+      word-wrap: break-word;
+      line-height: 1.3;
+    }
+
+    .timestamp {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+      font-size: 0.75rem;
+      color: #374151;
+      white-space: nowrap;
+    }
+
+    .viewed-time {
+      color: #0066cc;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    .viewer-type {
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .type-free {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .type-premium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      transform: scale(0.95);
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0.25rem;
+    }
+
+    .modal-close:hover {
+      color: #1a1a1a;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-field {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-field:last-child {
+      margin-bottom: 0;
+    }
+
+    .modal-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-input,
+    .modal-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: white;
+      transition: border-color 0.2s ease;
+    }
+
+    .modal-input:focus,
+    .modal-textarea:focus {
+      outline: none;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    }
+
+    .modal-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .modal-btn.primary {
+      background: #1a1a1a;
+      color: white;
+      border-color: #1a1a1a;
+    }
+
+    .modal-btn.primary:hover {
+      background: #333;
+    }
+
+    .modal-btn.secondary {
+      background: white;
+      color: #374151;
+    }
+
+    .modal-btn.secondary:hover {
+      background: #f9fafb;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(102, 126, 234, 0.1);
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem;
+      color: #6b7280;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .pagination button {
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #374151;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .pagination button:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .pagination button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pagination .current-page {
+      background: #1a1a1a;
+      color: white;
+      border-color: #1a1a1a;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Full Viewers Data</h1>
+      <a href="/" class="back-btn">
+        ← Back to Dashboard
+      </a>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value" id="total-viewers-stat">-</div>
+        <div class="stat-label">Total Viewers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="free-viewers-stat">-</div>
+        <div class="stat-label">Free Viewers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="premium-viewers-stat">-</div>
+        <div class="stat-label">Premium Viewers</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <input type="text" class="search-box" id="search-input" placeholder="Search by name, headline, or company...">
+      <button class="btn" onclick="toggleFilter()">Filter Options</button>
+      <button class="btn success" onclick="exportData()">Export CSV</button>
+    </div>
+
+    <div class="data-table-container">
+      <div class="table-header">
+        <div class="table-title">All Viewers Data</div>
+        <div class="table-controls">
+          <div class="toggle-container">
+            <span style="font-size: 0.875rem; color: #6b7280; font-weight: 500;">Scroll Mode:</span>
+            <div class="toggle-switch" id="scroll-toggle" onclick="toggleScrollMode()">
+              <div class="toggle-slider"></div>
+            </div>
+            <span style="font-size: 0.875rem; color: #6b7280; font-weight: 500;">Expand</span>
+          </div>
+          <button class="btn primary" onclick="loadViewersData()">Refresh Data</button>
+        </div>
+      </div>
+      
+      <div class="table-wrapper" id="table-wrapper">
+        <table class="data-table" id="data-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">#</th>
+              <th class="sortable" onclick="sortTable('name')">Name</th>
+              <th class="sortable" onclick="sortTable('headline')">Headline</th>
+              <th class="sortable" onclick="sortTable('istTimestamp')">IST Timestamp</th>
+              <th class="sortable" onclick="sortTable('viewedTime')">Viewed Time</th>
+              <th class="sortable" onclick="sortTable('type')">Type</th>
+              <th class="sortable" onclick="sortTable('scraped_at')">Scraped At</th>
+            </tr>
+          </thead>
+          <tbody id="viewers-table-body">
+            <tr>
+              <td colspan="7" class="loading">
+                <div class="spinner"></div>
+                Loading viewers data...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <button onclick="previousPage()" id="prev-btn">← Previous</button>
+        <span id="page-info">Page 1 of 1</span>
+        <button onclick="nextPage()" id="next-btn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for editing viewer data -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">View/Edit Viewer Details</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field">
+          <label class="modal-label">Name</label>
+          <input type="text" id="modal-name" class="modal-input">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Headline</label>
+          <textarea id="modal-headline" class="modal-textarea"></textarea>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Company</label>
+          <input type="text" id="modal-company" class="modal-input">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Type</label>
+          <select id="modal-type" class="modal-input">
+            <option value="free">Free</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Viewed Time</label>
+          <input type="text" id="modal-viewed-time" class="modal-input">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">IST Timestamp</label>
+          <input type="text" id="modal-timestamp" class="modal-input" readonly>
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Scraped At</label>
+          <input type="text" id="modal-scraped-at" class="modal-input" readonly>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="modal-btn primary" onclick="saveViewer()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = window.location.origin;
+    let currentPage = 1;
+    let itemsPerPage = 100; // Show more items per page
+    let totalItems = 0;
+    let totalPages = 1;
+    let allViewers = [];
+    let filteredViewers = [];
+    let currentSort = { column: null, direction: 'asc' };
+    let isScrollMode = true;
+    let currentEditingViewer = null;
+
+    // Load viewers data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadViewersData();
+      
+      // Search functionality
+      document.getElementById('search-input').addEventListener('input', function() {
+        filterData();
+      });
+    });
+
+    async function loadViewersData() {
+      try {
+        const tbody = document.getElementById('viewers-table-body');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading"><div class="spinner"></div>Loading all viewers data...</td></tr>';
+
+        // Fetch all data without any limit to get 200+ records
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/viewers?limit=10000`);
+        const result = await response.json();
+
+        if (!result.success || result.data.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="empty-state">
+                <div>No viewers data found</div>
+                <small>Data will appear after scraping</small>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        allViewers = result.data;
+        filteredViewers = [...allViewers];
+        totalItems = filteredViewers.length;
+        totalPages = Math.ceil(totalItems / itemsPerPage);
+        
+        updateStats();
+        renderTable();
+
+        console.log(`Loaded ${allViewers.length} total viewers`);
+
+      } catch (error) {
+        console.error('Error loading viewers data:', error);
+        const tbody = document.getElementById('viewers-table-body');
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <div style="color: #dc3545;">Error loading data</div>
+              <small>${error.message}</small>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function updateStats() {
+      const totalViewers = allViewers.length;
+      const freeViewers = allViewers.filter(v => v.type === 'free').length;
+      const premiumViewers = totalViewers - freeViewers;
+
+      document.getElementById('total-viewers-stat').textContent = totalViewers.toLocaleString();
+      document.getElementById('free-viewers-stat').textContent = freeViewers.toLocaleString();
+      document.getElementById('premium-viewers-stat').textContent = premiumViewers.toLocaleString();
+    }
+
+    function sortTable(column) {
+      // Update sort state
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+
+      // Update header styles
+      document.querySelectorAll('.data-table th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+      });
+      
+      const header = document.querySelector(`th[onclick*="${column}"]`);
+      if (header) {
+        header.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+
+      // Sort the data
+      filteredViewers.sort((a, b) => {
+        let aVal = a[column] || '';
+        let bVal = b[column] || '';
+        
+        // Handle different data types
+        if (column === 'istTimestamp' || column === 'scraped_at') {
+          aVal = new Date(aVal || 0);
+          bVal = new Date(bVal || 0);
+        } else {
+          aVal = String(aVal).toLowerCase();
+          bVal = String(bVal).toLowerCase();
+        }
+        
+        let comparison = 0;
+        if (aVal > bVal) comparison = 1;
+        if (aVal < bVal) comparison = -1;
+        
+        return currentSort.direction === 'desc' ? -comparison : comparison;
+      });
+
+      currentPage = 1;
+      renderTable();
+    }
+
+    function toggleScrollMode() {
+      isScrollMode = !isScrollMode;
+      const toggle = document.getElementById('scroll-toggle');
+      const wrapper = document.getElementById('table-wrapper');
+      const table = document.getElementById('data-table');
+      
+      if (isScrollMode) {
+        toggle.classList.remove('active');
+        wrapper.classList.remove('static');
+        table.classList.remove('static');
+        wrapper.style.maxHeight = '80vh';
+      } else {
+        toggle.classList.add('active');
+        wrapper.classList.add('static');
+        table.classList.add('static');
+        wrapper.style.maxHeight = 'none';
+      }
+    }
+
+    // Modal functions
+    function openModal(viewer) {
+      currentEditingViewer = viewer;
+      
+      // Populate modal fields
+      document.getElementById('modal-name').value = viewer.name || '';
+      document.getElementById('modal-headline').value = viewer.headline || '';
+      document.getElementById('modal-company').value = viewer.company || '';
+      document.getElementById('modal-type').value = viewer.type || 'free';
+      document.getElementById('modal-viewed-time').value = viewer.viewedTime || '';
+      document.getElementById('modal-timestamp').value = viewer.istTimestamp || viewer.timestamp || '';
+      document.getElementById('modal-scraped-at').value = viewer.scraped_at || '';
+      
+      // Show modal
+      document.getElementById('modal-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('active');
+      document.body.style.overflow = 'auto';
+      currentEditingViewer = null;
+    }
+
+    async function saveViewer() {
+      if (!currentEditingViewer) return;
+      
+      try {
+        const updatedData = {
+          _id: currentEditingViewer._id,
+          name: document.getElementById('modal-name').value,
+          headline: document.getElementById('modal-headline').value,
+          company: document.getElementById('modal-company').value,
+          type: document.getElementById('modal-type').value,
+          viewedTime: document.getElementById('modal-viewed-time').value
+        };
+        
+        // Here you would typically send the data to your backend
+        console.log('Saving viewer data:', updatedData);
+        
+        // For now, just update the local data
+        const viewerIndex = allViewers.findIndex(v => v._id === currentEditingViewer._id);
+        if (viewerIndex !== -1) {
+          Object.assign(allViewers[viewerIndex], updatedData);
+          filteredViewers = [...allViewers];
+          renderTable();
+        }
+        
+        closeModal();
+        alert('Viewer data updated successfully!');
+        
+      } catch (error) {
+        console.error('Error saving viewer:', error);
+        alert('Error saving viewer data: ' + error.message);
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'modal-overlay') {
+        closeModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    function renderTable() {
+      const tbody = document.getElementById('viewers-table-body');
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageData = filteredViewers.slice(startIndex, endIndex);
+
+      tbody.innerHTML = '';
+
+      pageData.forEach((viewer, index) => {
+        let displayName = viewer.name || 'Anonymous';
+        
+        // Clean up name format
+        if (displayName.includes("'s profile")) {
+          displayName = displayName.replace(/View\s+(.+)'s profile/, '$1').trim();
+        }
+        
+        // Remove extra whitespace and newlines
+        displayName = displayName.replace(/\s+/g, ' ').trim();
+        
+        const row = document.createElement('tr');
+        row.setAttribute('data-viewer-id', viewer._id);
+        row.onclick = () => openModal(viewer);
+        
+        row.innerHTML = `
+          <td style="width: 50px; text-align: center; font-weight: 600; color: #666;"><strong>${startIndex + index + 1}</strong></td>
+          <td class="viewer-name">${displayName}</td>
+          <td class="viewer-headline">${viewer.headline || 'No headline'}</td>
+          <td class="timestamp">${formatTimestamp(viewer.istTimestamp || viewer.timestamp)}</td>
+          <td class="viewed-time">${viewer.viewedTime || 'Unknown'}</td>
+          <td><span class="viewer-type type-${viewer.type || 'free'}">${(viewer.type || 'free').toUpperCase()}</span></td>
+          <td class="timestamp">${formatTimestamp(viewer.scraped_at)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      updatePagination();
+    }
+
+    function updatePagination() {
+      document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages}`;
+      document.getElementById('prev-btn').disabled = currentPage === 1;
+      document.getElementById('next-btn').disabled = currentPage === totalPages;
+    }
+
+    function previousPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    function nextPage() {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTable();
+      }
+    }
+
+    function filterData() {
+      const searchTerm = document.getElementById('search-input').value.toLowerCase();
+      
+      if (!searchTerm) {
+        filteredViewers = [...allViewers];
+      } else {
+        filteredViewers = allViewers.filter(viewer => {
+          const name = (viewer.name || '').toLowerCase();
+          const headline = (viewer.headline || '').toLowerCase();
+          const company = (viewer.company || '').toLowerCase();
+          
+          return name.includes(searchTerm) || 
+                 headline.includes(searchTerm) || 
+                 company.includes(searchTerm);
+        });
+      }
+      
+      // Reapply current sort if one is active
+      if (currentSort.column) {
+        sortTable(currentSort.column);
+      } else {
+        totalItems = filteredViewers.length;
+        totalPages = Math.ceil(totalItems / itemsPerPage);
+        currentPage = 1;
+        renderTable();
+      }
+    }
+
+    function toggleFilter() {
+      // Show advanced filtering options
+      alert('Advanced filtering options:\n\n• Use the search box to filter by name, headline, or company\n• Click column headers to sort data\n• Use the scroll toggle to expand/collapse the table');
+    }
+
+    function exportData() {
+      try {
+        let csv = 'Name,Headline,IST Timestamp,Viewed Time,Type,Scraped At\n';
+        
+        filteredViewers.forEach(viewer => {
+          const name = (viewer.name || '').replace(/"/g, '""');
+          const headline = (viewer.headline || '').replace(/"/g, '""');
+          const istTimestamp = viewer.istTimestamp || viewer.timestamp || '';
+          const viewedTime = viewer.viewedTime || 'Unknown';
+          const type = viewer.type || 'free';
+          const scrapedAt = viewer.scraped_at || '';
+          
+          csv += `"${name}","${headline}","${istTimestamp}","${viewedTime}","${type}","${scrapedAt}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `linkedin_viewers_full_data_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        alert('Error exporting data: ' + error.message);
+      }
+    }
+
+    function formatTimestamp(timestamp) {
+      if (!timestamp) return 'Unknown';
+      
+      try {
+        // If it's already in the correct format, return as is
+        if (typeof timestamp === 'string' && timestamp.includes('/') && timestamp.includes('am')) {
+          return timestamp;
+        }
+        
+        let date;
+        if (typeof timestamp === 'string') {
+          date = new Date(timestamp);
+        } else if (timestamp instanceof Date) {
+          date = timestamp;
+        } else {
+          return 'Unknown';
+        }
+        
+        if (isNaN(date.getTime()) || date.getFullYear() < 2000) {
+          return 'Unknown';
+        }
+        
+        // Format to IST
+        const formatted = date.toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        
+        return formatted;
+      } catch (error) {
+        return 'Unknown';
+      }
+    }
+  </script>
+</body>
+</html>

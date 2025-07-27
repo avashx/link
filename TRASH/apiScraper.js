@@ -1,11 +1,10 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const fs = require('fs');
 require('dotenv').config();
 
 puppeteer.use(StealthPlugin());
 
-async function scrapeProfileViewers(log) {
+async function scrapeProfileViewers(storage, log) {
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox'],
@@ -40,20 +39,10 @@ async function scrapeProfileViewers(log) {
       }));
     });
 
-    // Load existing data
-    let existing = [];
-    if (fs.existsSync('viewers.json')) {
-      existing = JSON.parse(fs.readFileSync('viewers.json'));
+    // Store new viewers using storage abstraction
+    for (const viewer of viewers) {
+      await storage.addViewer(viewer);
     }
-
-    // Append new viewers, avoid duplicates
-    viewers.forEach(v => {
-      if (!existing.some(e => e.name === v.name)) {
-        existing.push(v);
-      }
-    });
-
-    fs.writeFileSync('viewers.json', JSON.stringify(existing, null, 2));
     log('INFO', `Scraped viewers: ${viewers.map(v => v.name).join(', ')}`);
     await browser.close();
     return viewers;
@@ -64,4 +53,4 @@ async function scrapeProfileViewers(log) {
   }
 }
 
-module.exports = scrapeProfileViewers;
+module.exports = { scrapeProfileViewers };
