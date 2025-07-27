@@ -1625,6 +1625,11 @@
       ? 'http://localhost:3000' 
       : window.location.origin;
     
+    // Debug: Log the backend URL being used
+    console.log('🔗 Backend URL detected:', BACKEND_URL);
+    console.log('🌐 Current hostname:', window.location.hostname);
+    console.log('🏠 Current origin:', window.location.origin);
+    
     // Status management system
     class StatusManager {
       constructor() {
@@ -1885,8 +1890,17 @@
       // Fetch and display server logs
       async fetchServerLogs() {
         try {
-          const response = await fetch(`${BACKEND_URL}/api/logs`);
+          // Add cache-busting parameter
+          const url = `${BACKEND_URL}/api/logs?_t=${Date.now()}`;
+          console.log('🔗 Fetching logs from:', url);
+          const response = await fetch(url);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const logs = await response.json();
+          console.log('📋 Received logs:', logs.length, 'entries');
           
           // Only add new logs if they're different from last fetch
           if (logs.length !== this.lastLogCount) {
@@ -1900,6 +1914,7 @@
             this.lastLogCount = logs.length;
           }
         } catch (error) {
+          console.error('❌ Log fetch error:', error);
           this.addLog('SYSTEM', `Failed to fetch server logs: ${error.message}`, 'ERROR');
         }
       }
@@ -2450,9 +2465,18 @@
     // Auto-refresh logs from backend
     async function fetchBackendLogs() {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/logs?limit=100`);
+        // Add cache-busting parameter
+        const url = `${BACKEND_URL}/api/logs?limit=100&_t=${Date.now()}`;
+        console.log('🔗 Fetching backend logs from:', url);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         if (response.ok) {
           const logsData = await response.json();
+          console.log('📋 Received backend logs:', logsData.length || 0, 'entries');
           const container = document.getElementById('logs-container');
           
           // Clear existing logs
@@ -2487,9 +2511,10 @@
           }
         }
       } catch (error) {
+        console.error('❌ Backend logs fetch error:', error);
         // Only log error if it's the first time
         if (!window.logFetchErrorLogged) {
-          addLog('SYSTEM', 'Could not fetch backend logs (server may be offline)', 'WARNING');
+          addLog('SYSTEM', `Could not fetch backend logs: ${error.message}`, 'WARNING');
           window.logFetchErrorLogged = true;
         }
       }
