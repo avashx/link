@@ -1337,6 +1337,14 @@
               <span id="random-status" style="font-size: 0.875rem; color: #666;">Disabled</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 500; color: #1a1a1a; font-size: 0.875rem; min-width: 70px;">Fast Mode:</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="fast-mode-toggle" onchange="toggleFastMode()">
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="fast-mode-status" style="font-size: 0.875rem; color: #666;">Checking...</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-weight: 500; color: #1a1a1a; font-size: 0.875rem; min-width: 70px;">Interval:</span>
               <select id="interval-select" style="padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: white; color: #1a1a1a; font-size: 0.875rem; flex: 1;" onchange="updateInterval()">
                 <option value="300000">5 minutes</option>
@@ -1361,20 +1369,6 @@
             <button class="btn btn-danger" onclick="stopScrape()">
               Stop Tracking
             </button>
-            
-            <!-- Fast Mode Toggle -->
-            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
-              <label style="font-size: 0.875rem; font-weight: 500; color: #1a1a1a; margin: 0; cursor: pointer;" for="fast-mode-toggle">
-                🚀 Fast Mode
-              </label>
-              <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
-                <input type="checkbox" id="fast-mode-toggle" onchange="toggleFastMode()" style="opacity: 0; width: 0; height: 0;">
-                <span class="toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px;"></span>
-              </label>
-            </div>
-            <div id="fast-mode-status" style="font-size: 0.75rem; color: #666; text-align: center; margin-top: -0.25rem;">
-              Checking status...
-            </div>
             
             <button class="btn btn-secondary" onclick="refreshAllData()">
               Refresh All Data
@@ -2624,6 +2618,12 @@
           body: JSON.stringify({ enabled: toggle.checked })
         });
         
+        // Check if response is not JSON (e.g., HTML error page)
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error(`Server returned ${response.status}: Expected JSON but got ${contentType}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
@@ -2637,6 +2637,7 @@
         }
         
       } catch (error) {
+        console.error('Fast Mode toggle error:', error);
         addLog('ERROR', `Failed to toggle Fast Mode: ${error.message}`, 'ERROR');
         // Revert toggle state
         toggle.checked = !toggle.checked;
@@ -2668,15 +2669,27 @@
     async function loadFastModeStatus() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/fast-mode-status`);
+        
+        // Check if response is not JSON (e.g., HTML error page)
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error(`Server returned ${response.status}: Expected JSON but got ${contentType}`);
+        }
+        
         const result = await response.json();
         
         if (result.success) {
           const toggle = document.getElementById('fast-mode-toggle');
           toggle.checked = result.enabled;
           updateFastModeStatus(result.enabled, result.nextScrape);
+        } else {
+          throw new Error(result.error || 'Failed to get Fast Mode status');
         }
       } catch (error) {
-        console.log('Could not load Fast Mode status:', error.message);
+        console.error('Fast Mode status error:', error);
+        const statusDiv = document.getElementById('fast-mode-status');
+        statusDiv.textContent = 'Status unavailable';
+        statusDiv.style.color = '#dc2626';
       }
     }
 
