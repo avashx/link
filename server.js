@@ -53,21 +53,6 @@ async function initializeStorage() {
 }
 
 const app = express();
-
-// Add CORS headers for all requests
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
-});
-
 app.use(express.static('public'));
 // Serve screenshot images from root directory
 app.use('/screenshots', express.static('.', {
@@ -388,6 +373,8 @@ app.get('/api/status', (req, res) => {
     status: 'running',
     scrapingActive: scrapingProcess !== null,
     scheduledScraping: cronTask !== null,
+    randomizedScraping: randomizedTimeout !== null,
+    schedulingMode: randomizedTimeout ? 'randomized' : (cronTask ? 'cron' : 'none'),
     lastLogCount: logs.length,
     memory: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
     uptime: `${Math.floor(process.uptime())}s`
@@ -570,31 +557,72 @@ app.post('/api/stop-scraper', (req, res) => {
 // Update scraping schedule
 app.post('/api/update-schedule', (req, res) => {
   try {
-    const { schedule } = req.body;
+    const { mode, minInterval, maxInterval } = req.body;
     
-    if (!schedule) {
-      return res.json({ success: false, error: 'Schedule parameter is required' });
+    if (mode === 'randomized') {
+      // Update randomized mode intervals (in minutes)
+      const min = minInterval || 9;
+      const max = maxInterval || 16;
+      
+      // Stop current timeout
+      if (randomizedTimeout) {
+        clearTimeout(randomizedTimeout);
+        log('INFO', '🎲 Previous randomized scraping stopped');
+      }
+      
+      // Restart with new intervals
+      scheduleNextRandomScrape(min, max);
+      
+      log('INFO', `🎲 Randomized scraping updated: ${min}-${max} minutes`);
+      
+      res.json({ 
+        success: true, 
+        message: `Randomized scraping updated: ${min}-${max} minute intervals`,
+        mode: 'randomized',
+        minInterval: min,
+        maxInterval: max
+      });
+      
+    } else if (mode === 'cron') {
+      const { schedule } = req.body;
+      
+      if (!schedule) {
+        return res.json({ success: false, error: 'Schedule parameter is required for cron mode' });
+      }
+      
+      // Stop randomized system
+      if (randomizedTimeout) {
+        clearTimeout(randomizedTimeout);
+        log('INFO', '🎲 Randomized scraping stopped');
+      }
+      
+      // Stop current cron task
+      if (cronTask) {
+        cronTask.destroy();
+        log('INFO', '📅 Previous cron task stopped');
+      }
+      
+      // Start new cron task
+      cronTask = cron.schedule(schedule, scrapeWithTimeout, {
+        scheduled: true,
+        timezone: "America/New_York"
+      });
+      
+      log('INFO', `📅 Cron scraping updated: ${schedule}`);
+      
+      res.json({ 
+        success: true, 
+        message: 'Cron schedule updated successfully',
+        mode: 'cron',
+        schedule: schedule 
+      });
+      
+    } else {
+      res.json({ 
+        success: false, 
+        error: 'Mode must be "randomized" or "cron"' 
+      });
     }
-    
-    // Stop current cron task
-    if (cronTask) {
-      cronTask.destroy();
-      log('INFO', '📅 Previous scheduled scraping stopped');
-    }
-    
-    // Start new cron task with updated schedule
-    cronTask = cron.schedule(schedule, scrapeWithTimeout, {
-      scheduled: true,
-      timezone: "America/New_York"
-    });
-    
-    log('INFO', `📅 Scheduled scraping updated: ${schedule}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'Scraping schedule updated successfully',
-      schedule: schedule 
-    });
     
   } catch (error) {
     log('ERROR', `❌ Failed to update schedule: ${error.message}`);
@@ -602,13 +630,36 @@ app.post('/api/update-schedule', (req, res) => {
   }
 });
 
-// Schedule scraping every hour (changed from 30 minutes)
-cronTask = cron.schedule('0 * * * *', scrapeWithTimeout, {
-  scheduled: true,
-  timezone: "America/New_York"
-});
+// Randomized scraping system to avoid detection
+let randomizedTimeout = null;
 
-log('INFO', '📅 Scheduled scraping started (every hour)');
+function scheduleNextRandomScrape(minMinutes = 9, maxMinutes = 16) {
+  // Clear existing timeout if any
+  if (randomizedTimeout) {
+    clearTimeout(randomizedTimeout);
+  }
+  
+  // Generate random interval between min-max minutes
+  const minInterval = minMinutes * 60 * 1000; // Convert to milliseconds
+  const maxInterval = maxMinutes * 60 * 1000; // Convert to milliseconds
+  const randomInterval = Math.floor(Math.random() * (maxInterval - minInterval + 1)) + minInterval;
+  
+  const minutes = Math.floor(randomInterval / 60000);
+  const seconds = Math.floor((randomInterval % 60000) / 1000);
+  
+  log('INFO', `📅 Next scrape scheduled in ${minutes}m ${seconds}s (randomized: ${minMinutes}-${maxMinutes}min range)`);
+  
+  randomizedTimeout = setTimeout(async () => {
+    await scrapeWithTimeout();
+    // Schedule the next random scrape after this one completes (same parameters)
+    scheduleNextRandomScrape(minMinutes, maxMinutes);
+  }, randomInterval);
+}
+
+// Start the randomized scraping system
+scheduleNextRandomScrape();
+
+log('INFO', '🎲 Randomized scraping system started (9-16 minute intervals for stealth)');
 
 // Test the cron immediately (for debugging)
 // scrapeWithTimeout();
@@ -619,11 +670,16 @@ process.on('SIGINT', async () => {
   
   if (cronTask) {
     cronTask.destroy();
-    log('INFO', '📅 Scheduled scraping stopped');
+    log('INFO', '📅 Cron task stopped');
   }
   
-  if (storage && storage.close) {
-    await storage.close();
+  if (randomizedTimeout) {
+    clearTimeout(randomizedTimeout);
+    log('INFO', '🎲 Randomized scraping timer stopped');
+  }
+  
+  if (storage && storage.client && storage.client.close) {
+    await storage.client.close();
     log('INFO', '💾 Database connection closed');
   }
   
