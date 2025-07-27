@@ -117,6 +117,29 @@ app.get('/screenshots', (req, res) => {
   }
 });
 
+// New endpoint to serve screenshot images from MongoDB
+app.get('/api/screenshot/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const screenshotData = await storage.getScreenshotData(filename);
+    
+    if (!screenshotData) {
+      return res.status(404).json({ error: 'Screenshot not found' });
+    }
+    
+    res.set({
+      'Content-Type': screenshotData.contentType,
+      'Content-Length': screenshotData.data.length,
+      'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
+      'Content-Disposition': `inline; filename="${screenshotData.filename}"`
+    });
+    
+    res.send(screenshotData.data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/logs', (req, res) => {
   const limit = parseInt(req.query.limit) || 100; // Allow configurable limit, default 100
   res.json(logs.slice(-limit)); // Return last N logs
@@ -201,9 +224,20 @@ app.get('/api/mongodb/daily-totals', async (req, res) => {
 app.get('/api/mongodb/screenshots', async (req, res) => {
   try {
     const screenshots = await storage.getScreenshots();
+    
+    // Update screenshot URLs to point to our API endpoint for serverless
+    const updatedScreenshots = screenshots.map(screenshot => ({
+      ...screenshot,
+      // Use API endpoint for serverless, fallback to local path for development
+      url: `/api/screenshot/${screenshot.filename}`,
+      localPath: screenshot.localPath || `/screenshots/${screenshot.filename}`,
+      // Add proper date formatting
+      date: screenshot.istTimestamp || screenshot.timestamp || 'Unknown'
+    }));
+    
     res.json({
       success: true,
-      data: screenshots
+      data: updatedScreenshots
     });
   } catch (error) {
     res.json({ success: false, error: error.message });

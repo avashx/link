@@ -315,6 +315,55 @@ class MongoDB {
     return result;
   }
 
+  // Save screenshot with binary data for serverless deployment
+  async saveScreenshotWithData(filename, imageBuffer, metadata = {}) {
+    const collection = this.getCollection('screenshots');
+    
+    // Generate IST timestamp
+    const istTimestamp = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    
+    const document = {
+      filename: filename,
+      imageData: imageBuffer.toString('base64'), // Store as base64
+      contentType: 'image/png',
+      size: imageBuffer.length,
+      istTimestamp: istTimestamp,
+      timestamp: istTimestamp,
+      created_at: new Date(),
+      uploaded_at: new Date(),
+      ...metadata // Include any additional metadata
+    };
+    
+    const result = await collection.insertOne(document);
+    return result;
+  }
+
+  // Get screenshot binary data by filename
+  async getScreenshotData(filename) {
+    const collection = this.getCollection('screenshots');
+    const screenshot = await collection.findOne({ filename: filename });
+    
+    if (screenshot && screenshot.imageData) {
+      return {
+        data: Buffer.from(screenshot.imageData, 'base64'),
+        contentType: screenshot.contentType || 'image/png',
+        filename: screenshot.filename,
+        metadata: screenshot
+      };
+    }
+    
+    return null;
+  }
+
   async getScreenshots(limit = 20) {
     const collection = this.getCollection('screenshots');
     const screenshots = await collection

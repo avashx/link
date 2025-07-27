@@ -321,11 +321,25 @@ async function scrapeProfileViews(storage, log, triggerType = 'manual') {
       fs.mkdirSync(publicScreenshotDir, { recursive: true });
     }
     const publicScreenshotPath = path.join(publicScreenshotDir, screenshotName);
-    
-    await page.screenshot({ path: publicScreenshotPath, fullPage: true });
-    log('INFO', `📸 Screenshot saved to public directory: ${screenshotName}`);
 
-    // Upload screenshot to Firebase Storage (with fallback)
+    // Take screenshot and get buffer for database storage
+    const screenshotBuffer = await page.screenshot({ fullPage: true });
+    
+    // Save to local file system (for local development)
+    fs.writeFileSync(publicScreenshotPath, screenshotBuffer);
+    log('INFO', `📸 Screenshot saved locally: ${screenshotName}`);
+
+    // Save screenshot data to MongoDB for serverless deployment
+    try {
+      await storage.saveScreenshotWithData(screenshotName, screenshotBuffer, {
+        totalViewers: result.totalViewers,
+        triggerType: triggerType,
+        istTimestamp: istTime
+      });
+      log('INFO', '� Screenshot data saved to MongoDB');
+    } catch (dbError) {
+      log('ERROR', `❌ Failed to save screenshot to MongoDB: ${dbError.message}`);
+    }    // Upload screenshot to Firebase Storage (with fallback)
     const enableFirebaseStorage = process.env.ENABLE_FIREBASE_STORAGE !== 'false';
     
     if (!enableFirebaseStorage) {
