@@ -1620,7 +1620,10 @@
 
   <script>
     // Backend URL configuration
-    const BACKEND_URL = 'http://localhost:3000';
+    // Auto-detect backend URL based on environment
+    const BACKEND_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:3000' 
+      : window.location.origin;
     
     // Status management system
     class StatusManager {

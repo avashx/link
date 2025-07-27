@@ -593,5 +593,9 @@ app.post('/api/stop', (req, res) => {
   await initializeStorage();
   
   // Start the server only after storage is initialized
-  app.listen(3000, () => log('INFO', 'Server running on http://localhost:3000'));
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => log('INFO', `Server running on port ${PORT}`));
 })();
+
+// Export the app for serverless deployment
+module.exports = app;
