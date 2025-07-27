@@ -2,3 +2,4 @@ node_modules
 serviceAccountKey.json
 viewers.json
 .env
+TRASH/
