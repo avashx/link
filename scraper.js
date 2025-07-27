@@ -195,33 +195,60 @@ async function scrapeProfileViews(storage, log, triggerType = 'manual') {
           const headline = row.querySelector('.profile-view-card__headline, .artdeco-entity-lockup__subtitle, .profile-topcard-person-entity__headline')?.textContent.trim() || '';
           const company = row.querySelector('.profile-view-card__company, .artdeco-entity-lockup__metadata')?.textContent.trim() || '';
           
-          // Try multiple selectors for timestamp/viewed time
+          // Enhanced viewed time extraction
+          let viewedTime = 'Unknown';
+          
+          // Try multiple selectors and approaches for timestamp/viewed time
           let timestamp = row.querySelector('.profile-view-card__timestamp, .member-analytics-addon-summary__list-item-date, .profile-views-analytics__item-time')?.textContent.trim() || '';
           
-          // Also look for text nodes that might contain "Viewed X ago"
+          // Look for any text that contains time information
           if (!timestamp) {
             const allText = row.textContent || '';
-            const timeMatch = allText.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
-            if (timeMatch) {
-              timestamp = timeMatch[0];
+            // Look for various time patterns
+            const timePatterns = [
+              /Viewed (\d+) (second|minute|hour|day|week|month)s? ago/i,
+              /(\d+) (second|minute|hour|day|week|month)s? ago/i,
+              /(just now|a moment ago)/i,
+              /(\d+)[smhd]/i // Short format like 2h, 5m, 1d
+            ];
+            
+            for (const pattern of timePatterns) {
+              const match = allText.match(pattern);
+              if (match) {
+                timestamp = match[0];
+                break;
+              }
             }
           }
           
-          // Extract "Viewed X hours ago" information for free viewers too
-          let viewedTime = 'Unknown';
-          const timeMatch = timestamp.match(/Viewed (\d+) (hour|day|minute)s? ago/i);
-          if (timeMatch) {
-            const [, num, unit] = timeMatch;
-            viewedTime = `${num} ${unit}${parseInt(num) !== 1 ? 's' : ''} ago`;
-          } else if (timestamp && timestamp.toLowerCase().includes('ago')) {
-            viewedTime = timestamp;
-          } else {
-            // If no "viewed time" found, use default
-            viewedTime = 'Unknown';
+          // Extract and format viewed time
+          if (timestamp) {
+            const timeMatch = timestamp.match(/Viewed (\d+) (second|minute|hour|day|week|month)s? ago/i);
+            if (timeMatch) {
+              const [, num, unit] = timeMatch;
+              viewedTime = `${num} ${unit}${parseInt(num) !== 1 ? 's' : ''} ago`;
+            } else if (timestamp.match(/(\d+) (second|minute|hour|day|week|month)s? ago/i)) {
+              const match = timestamp.match(/(\d+) (second|minute|hour|day|week|month)s? ago/i);
+              const [, num, unit] = match;
+              viewedTime = `${num} ${unit}${parseInt(num) !== 1 ? 's' : ''} ago`;
+            } else if (timestamp.toLowerCase().includes('ago')) {
+              viewedTime = timestamp;
+            } else if (timestamp.toLowerCase().includes('just now') || timestamp.toLowerCase().includes('moment ago')) {
+              viewedTime = 'Just now';
+            } else {
+              // Try to parse short format like 2h, 5m, 1d
+              const shortMatch = timestamp.match(/(\d+)([smhd])/i);
+              if (shortMatch) {
+                const [, num, unit] = shortMatch;
+                const unitMap = { s: 'second', m: 'minute', h: 'hour', d: 'day' };
+                const fullUnit = unitMap[unit.toLowerCase()] || unit;
+                viewedTime = `${num} ${fullUnit}${parseInt(num) !== 1 ? 's' : ''} ago`;
+              }
+            }
           }
           
           return { name, headline, company, timestamp: '', viewedTime };
-        });
+        }).filter(viewer => viewer.name && viewer.name.length > 0);
       }
       
       // Remove duplicates from allViewers

@@ -168,20 +168,19 @@ app.get('/api/mongodb/viewers', async (req, res) => {
 
 app.get('/api/mongodb/free-viewers', async (req, res) => {
   try {
-    const viewers = await storage.getViewers();
-    const freeViewers = viewers.filter(viewer => 
-      viewer.name && 
-      !viewer.name.includes('work at') && 
-      !viewer.name.includes('found you through') &&
-      !viewer.name.includes('has a connection') &&
-      !viewer.name.toLowerCase().includes('someone at')
-    ).map(viewer => {
-      // Clean up the name by removing the duplicate pattern
+    const limit = parseInt(req.query.limit) || 1000; // Increase default limit to show all
+    const freeViewers = await storage.getFreeViewers(limit);
+    
+    // Clean up viewer names and remove duplicates
+    const cleanedViewers = [];
+    const seenNames = new Set();
+    
+    freeViewers.forEach(viewer => {
+      // Clean up the name by removing duplicate patterns
       let cleanName = viewer.name;
       
-      // Simple approach: if name contains "View [Same Name]'s profile", extract the first part
+      // Remove "View [Name]'s profile" duplicates
       if (cleanName.includes('View') && cleanName.includes("'s profile")) {
-        // Find the first occurrence of "View" and take everything before it
         const viewIndex = cleanName.indexOf('View');
         if (viewIndex > 0) {
           const beforeView = cleanName.substring(0, viewIndex).trim();
@@ -194,15 +193,31 @@ app.get('/api/mongodb/free-viewers', async (req, res) => {
       // Remove extra whitespace and newlines
       cleanName = cleanName.replace(/\s+/g, ' ').trim();
       
-      return {
-        ...viewer,
-        name: cleanName || viewer.name // fallback to original if cleaning failed
-      };
+      // Remove duplicate name patterns (e.g., "John Doe John Doe")
+      const words = cleanName.split(' ');
+      const halfLength = Math.floor(words.length / 2);
+      if (words.length > 1 && words.length % 2 === 0) {
+        const firstHalf = words.slice(0, halfLength).join(' ');
+        const secondHalf = words.slice(halfLength).join(' ');
+        if (firstHalf === secondHalf) {
+          cleanName = firstHalf;
+        }
+      }
+      
+      // Only add unique names
+      if (!seenNames.has(cleanName.toLowerCase()) && cleanName.length > 2) {
+        seenNames.add(cleanName.toLowerCase());
+        cleanedViewers.push({
+          ...viewer,
+          name: cleanName || viewer.name // fallback to original if cleaning failed
+        });
+      }
     });
     
     res.json({
       success: true,
-      data: freeViewers
+      data: cleanedViewers,
+      total: cleanedViewers.length
     });
   } catch (error) {
     res.json({ success: false, error: error.message });
@@ -696,6 +711,80 @@ app.get('/api/fast-mode-status', (req, res) => {
     nextScrape: nextRandomizedScrapeTime,
     isActive: randomizedTimeout !== null
   });
+});
+
+// Remove duplicate viewers from database
+app.post('/api/mongodb/remove-duplicates', async (req, res) => {
+  try {
+    log('INFO', '🧹 Starting duplicate removal process...');
+    
+    const collection = storage.getCollection('viewers');
+    
+    // Get all viewers
+    const allViewers = await collection.find({}).toArray();
+    log('INFO', `📊 Found ${allViewers.length} total viewers`);
+    
+    // Group by name (case-insensitive) to find duplicates
+    const viewerGroups = {};
+    
+    allViewers.forEach(viewer => {
+      const key = viewer.name?.toLowerCase()?.trim();
+      if (key && key.length > 2) {
+        if (!viewerGroups[key]) {
+          viewerGroups[key] = [];
+        }
+        viewerGroups[key].push(viewer);
+      }
+    });
+    
+    // Find groups with duplicates and keep the most recent one
+    let removedCount = 0;
+    const idsToRemove = [];
+    
+    for (const [name, viewers] of Object.entries(viewerGroups)) {
+      if (viewers.length > 1) {
+        // Sort by created_at or istTimestamp to keep the most recent
+        viewers.sort((a, b) => {
+          const dateA = a.created_at || new Date(a.istTimestamp || 0);
+          const dateB = b.created_at || new Date(b.istTimestamp || 0);
+          return new Date(dateB) - new Date(dateA);
+        });
+        
+        // Keep the first (most recent) and mark others for removal
+        for (let i = 1; i < viewers.length; i++) {
+          idsToRemove.push(viewers[i]._id);
+          removedCount++;
+        }
+      }
+    }
+    
+    // Remove duplicates if any found
+    if (idsToRemove.length > 0) {
+      const deleteResult = await collection.deleteMany({
+        _id: { $in: idsToRemove }
+      });
+      
+      log('INFO', `🗑️ Removed ${deleteResult.deletedCount} duplicate viewers`);
+      
+      res.json({
+        success: true,
+        removedCount: deleteResult.deletedCount,
+        message: `Successfully removed ${deleteResult.deletedCount} duplicate viewers`
+      });
+    } else {
+      log('INFO', '✅ No duplicates found');
+      
+      res.json({
+        success: true,
+        removedCount: 0,
+        message: 'No duplicate viewers found'
+      });
+    }
+    
+  } catch (error) {
+    log('ERROR', `❌ Failed to remove duplicates: ${error.message}`);
+    res.json({ success: false, error: error.message });
+  }
 });
 
 // Randomized scraping system to avoid detection

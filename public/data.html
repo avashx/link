@@ -630,6 +630,7 @@
             </div>
             <span style="font-size: 0.875rem; color: #6b7280; font-weight: 500;">Expand</span>
           </div>
+          <button class="btn danger" onclick="removeDuplicates()" style="margin-right: 0.5rem;">Remove Duplicates</button>
           <button class="btn primary" onclick="loadViewersData()">Refresh Data</button>
         </div>
       </div>
@@ -1083,6 +1084,87 @@
         return 'Unknown';
       }
     }
+
+    // Remove duplicates function
+    async function removeDuplicates() {
+      if (!confirm('Are you sure you want to remove duplicate viewers from the database? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        showNotification('Removing duplicates...', 'info');
+        
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/remove-duplicates`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showNotification(`Successfully removed ${result.removedCount} duplicate viewers!`, 'success');
+          // Reload the data to reflect changes
+          setTimeout(() => {
+            loadViewersData();
+            updateStats();
+          }, 1000);
+        } else {
+          throw new Error(result.error || 'Failed to remove duplicates');
+        }
+        
+      } catch (error) {
+        console.error('Error removing duplicates:', error);
+        showNotification(`Error removing duplicates: ${error.message}`, 'error');
+      }
+    }
+
+    // Simple notification system
+    function showNotification(message, type = 'info') {
+      // Remove existing notifications
+      const existing = document.querySelector('.notification');
+      if (existing) existing.remove();
+      
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideInRight 0.3s ease-out;
+      `;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      // Auto remove after 4 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.animation = 'slideOutRight 0.3s ease-in';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 4000);
+    }
+
+    // Add CSS for notification animations
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>

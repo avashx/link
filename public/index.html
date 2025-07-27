@@ -2110,7 +2110,7 @@
         const tbody = document.getElementById('free-viewers-table-body');
         tbody.innerHTML = '<tr><td colspan="5" class="loading"><div class="spinner"></div>Loading free viewers...</td></tr>';
         
-        const response = await fetch(`${BACKEND_URL}/api/mongodb/free-viewers?limit=50`);
+        const response = await fetch(`${BACKEND_URL}/api/mongodb/free-viewers?limit=1000`);
         const result = await response.json();
         
         tbody.innerHTML = '';
