@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend URL Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .info { background: #f0f8ff; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #f0fff0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #fff0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔗 Backend URL Detection Test</h1>
+    
+    <div class="info">
+        <h3>Environment Detection:</h3>
+        <p><strong>Hostname:</strong> <span id="hostname"></span></p>
+        <p><strong>Origin:</strong> <span id="origin"></span></p>
+        <p><strong>Backend URL:</strong> <span id="backend-url"></span></p>
+    </div>
+
+    <button onclick="testHealthAPI()">🩺 Test Health API</button>
+    <button onclick="testLogsAPI()">📋 Test Logs API</button>
+    <button onclick="testMongoAPI()">🗄️ Test MongoDB Status</button>
+
+    <div id="results"></div>
+
+    <script>
+        // Backend URL detection (same logic as main app)
+        const BACKEND_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : window.location.origin;
+
+        // Display environment info
+        document.getElementById('hostname').textContent = window.location.hostname;
+        document.getElementById('origin').textContent = window.location.origin;
+        document.getElementById('backend-url').textContent = BACKEND_URL;
+
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        async function testHealthAPI() {
+            try {
+                addResult('🔄 Testing health API...', 'info');
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult(`✅ Health API Success: ${JSON.stringify(data)}`, 'success');
+                } else {
+                    addResult(`❌ Health API Error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Health API Failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogsAPI() {
+            try {
+                addResult('🔄 Testing logs API...', 'info');
+                const response = await fetch(`${BACKEND_URL}/api/logs?limit=5`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult(`✅ Logs API Success: Received ${data.length} logs`, 'success');
+                } else {
+                    addResult(`❌ Logs API Error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Logs API Failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMongoAPI() {
+            try {
+                addResult('🔄 Testing MongoDB status API...', 'info');
+                const response = await fetch(`${BACKEND_URL}/api/mongodb/status`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult(`✅ MongoDB API Success: Connected=${data.connected}, Type=${data.storageType}`, 'success');
+                } else {
+                    addResult(`❌ MongoDB API Error: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ MongoDB API Failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-test on load
+        setTimeout(() => {
+            testHealthAPI();
+        }, 1000);
+    </script>
+</body>
+</html>
